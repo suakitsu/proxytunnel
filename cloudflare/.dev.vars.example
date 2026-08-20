@@ -1,0 +1,2 @@
+# Local development only. Copy this file to .dev.vars and change the value.
+ADMIN=change-me-before-local-development

@@ -1,0 +1,3 @@
+{
+  "$comment": "默认仅本机访问，双击 START.cmd 无需修改任何字段；需要局域网访问时再配置 allowed_cidr。"
+}

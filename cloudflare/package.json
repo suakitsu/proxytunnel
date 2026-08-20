@@ -1,0 +1,24 @@
+{
+  "name": "proxytunnel-tooling",
+  "version": "0.1.0-alpha.1",
+  "private": true,
+  "description": "Development tooling for the ProxyTunnel EdgeTunnel integration",
+  "license": "GPL-2.0-only",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/suakitsu/proxytunnel.git"
+  },
+  "scripts": {
+    "build:worker": "node scripts/build-worker.mjs",
+    "clean": "node ../scripts/clean.mjs",
+    "cf:dev": "wrangler dev --config wrangler.jsonc --local --local-protocol https",
+    "cf:dry-run": "wrangler deploy --dry-run --config wrangler.jsonc",
+    "cf:check": "wrangler check startup --config wrangler.jsonc"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "wrangler": "^4.124.0"
+  }
+}

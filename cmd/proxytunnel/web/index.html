@@ -1,0 +1,2339 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>ProxyTunnel · 代理池控制台</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <meta name="theme-color" content="#0f766e">
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --surface: #ffffff;
+      --surface-2: #f8fafb;
+      --line: #dfe5e8;
+      --line-strong: #cdd6da;
+      --text: #172126;
+      --muted: #65747c;
+      --soft: #8a979d;
+      --brand: #0f766e;
+      --brand-2: #0d9488;
+      --brand-soft: #e6f6f3;
+      --good: #16865b;
+      --good-soft: #e9f7f0;
+      --warn: #a8620a;
+      --warn-soft: #fff4dc;
+      --bad: #c2413a;
+      --bad-soft: #fdeeed;
+      --blue: #2878bd;
+      --blue-soft: #eaf3fb;
+      --shadow: 0 1px 2px rgba(18, 33, 40, .04), 0 8px 28px rgba(24, 45, 55, .05);
+      --radius: 14px;
+      --mono: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      --font: "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif;
+    }
+    :root[data-theme="dark"] {
+      --bg: #0f1518;
+      --surface: #151d21;
+      --surface-2: #1a2429;
+      --line: #29363d;
+      --line-strong: #384850;
+      --text: #edf3f5;
+      --muted: #a0afb6;
+      --soft: #75858d;
+      --brand: #36b7aa;
+      --brand-2: #52c9bd;
+      --brand-soft: #163833;
+      --good: #52c48c;
+      --good-soft: #18372a;
+      --warn: #e5a63b;
+      --warn-soft: #3d2f18;
+      --bad: #ee7770;
+      --bad-soft: #422323;
+      --blue: #66aee6;
+      --blue-soft: #1d3446;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .16), 0 8px 28px rgba(0, 0, 0, .18);
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 15px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, select, textarea { font: inherit; }
+    button { color: inherit; }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      height: 64px;
+      border-bottom: 1px solid var(--line);
+      background: color-mix(in srgb, var(--surface) 94%, transparent);
+      backdrop-filter: blur(14px);
+    }
+    .topbar-inner {
+      max-width: 1480px;
+      height: 100%;
+      margin: 0 auto;
+      padding: 0 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+    .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+    .brand-mark {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border-radius: 10px;
+      background: var(--brand);
+      color: white;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
+    }
+    .brand-mark img { display: block; width: 100%; height: 100%; }
+    .brand-title { font-size: 16px; font-weight: 700; letter-spacing: .01em; white-space: nowrap; }
+    .brand-sub { color: var(--muted); font-size: 12px; white-space: nowrap; }
+    .top-actions { display: flex; align-items: center; gap: 12px; }
+    .live-state { display: flex; align-items: center; gap: 8px; color: var(--muted); white-space: nowrap; }
+    .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--soft); box-shadow: 0 0 0 4px color-mix(in srgb, var(--soft) 15%, transparent); }
+    .live-dot.ok { background: var(--good); box-shadow: 0 0 0 4px color-mix(in srgb, var(--good) 15%, transparent); }
+    .live-dot.bad { background: var(--bad); box-shadow: 0 0 0 4px color-mix(in srgb, var(--bad) 15%, transparent); }
+    .theme-select {
+      height: 36px;
+      padding: 0 31px 0 11px;
+      color: var(--text);
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      outline: none;
+    }
+    main { max-width: 1480px; margin: 0 auto; padding: 34px 28px 48px; }
+    .hero { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 22px; }
+    .eyebrow { color: var(--brand); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 5px; }
+    h1 { margin: 0; font-size: clamp(25px, 3vw, 34px); line-height: 1.2; letter-spacing: -.025em; }
+    .hero p { max-width: 760px; margin: 8px 0 0; color: var(--muted); font-size: 16px; }
+    .refresh-note { color: var(--muted); white-space: nowrap; padding-top: 7px; }
+    .notice {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding: 14px 16px;
+      border: 1px solid color-mix(in srgb, var(--blue) 28%, var(--line));
+      border-radius: 12px;
+      background: var(--blue-soft);
+    }
+    .notice-icon { color: var(--blue); flex: 0 0 auto; margin-top: 1px; }
+    .notice strong { font-weight: 700; }
+    .notice span { color: var(--muted); }
+    .cards { display: grid; grid-template-columns: repeat(6, minmax(150px, 1fr)); gap: 14px; margin-bottom: 20px; }
+    .card, .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .card { min-height: 128px; padding: 18px; }
+    .card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 13px; }
+    .card-icon { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; background: var(--surface-2); color: var(--brand); }
+    .metric { margin-top: 12px; font-size: 29px; line-height: 1.05; font-weight: 720; letter-spacing: -.035em; }
+    .metric small { font-size: 14px; color: var(--muted); font-weight: 600; letter-spacing: 0; }
+    .metric.good { color: var(--good); }
+    .metric.warn { color: var(--warn); }
+    .metric.bad { color: var(--bad); }
+    .card-foot { margin-top: 9px; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(330px, .8fr); gap: 20px; margin-bottom: 20px; }
+    .panel { overflow: hidden; }
+    .panel-header { min-height: 64px; padding: 15px 18px; display: flex; align-items: center; justify-content: space-between; gap: 14px; border-bottom: 1px solid var(--line); }
+    .panel-title { font-size: 16px; font-weight: 700; }
+    .panel-sub { margin-top: 2px; color: var(--muted); font-size: 12px; }
+    .segmented { display: flex; align-items: center; padding: 3px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 9px; }
+    .segment { min-width: 50px; height: 30px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; font-size: 13px; }
+    .segment.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.08); font-weight: 650; }
+    .chart-wrap { position: relative; height: 320px; padding: 16px 18px 12px; }
+    #historyChart { width: 100%; height: 100%; display: block; }
+    .chart-tooltip {
+      position: absolute;
+      z-index: 3;
+      min-width: 172px;
+      padding: 10px 12px;
+      border: 1px solid var(--line-strong);
+      border-radius: 9px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      pointer-events: none;
+      opacity: 0;
+      transform: translate(-50%, -110%);
+      transition: opacity .1s;
+      font-size: 12px;
+    }
+    .chart-tooltip.show { opacity: 1; }
+    .chart-tooltip strong { display: block; margin-bottom: 5px; font-size: 12px; }
+    .tip-row { display: flex; justify-content: space-between; gap: 16px; color: var(--muted); }
+    .tip-row b { color: var(--text); font-weight: 650; }
+    .chart-legend { display: flex; gap: 18px; flex-wrap: wrap; padding: 0 18px 16px; color: var(--muted); font-size: 12px; }
+    .legend-item { display: flex; align-items: center; gap: 7px; }
+    .legend-line { width: 18px; height: 3px; border-radius: 5px; background: var(--good); }
+    .legend-line.blue { background: var(--blue); }
+    .detail-list { padding: 6px 18px 14px; }
+    .detail-row { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+    .detail-row:last-child { border-bottom: 0; }
+    .detail-label { color: var(--muted); }
+    .detail-value { text-align: right; font-weight: 600; overflow-wrap: anywhere; }
+    .mono { font-family: var(--mono); font-size: .92em; }
+    .pill { display: inline-flex; align-items: center; gap: 6px; min-height: 25px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 650; background: var(--surface-2); color: var(--muted); }
+    .pill.good { color: var(--good); background: var(--good-soft); }
+    .pill.bad { color: var(--bad); background: var(--bad-soft); }
+    .pill.warn { color: var(--warn); background: var(--warn-soft); }
+    .actions-panel { margin-bottom: 20px; }
+    .action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 18px; }
+    .action-button {
+      min-height: 76px;
+      padding: 13px 15px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-align: left;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: var(--surface-2);
+      cursor: pointer;
+      transition: border-color .15s, transform .15s, background .15s;
+    }
+    .action-button:hover { border-color: var(--brand); background: var(--brand-soft); transform: translateY(-1px); }
+    .action-button.danger:hover { border-color: var(--bad); background: var(--bad-soft); }
+    .action-button:disabled { opacity: .55; cursor: wait; transform: none; }
+    .action-symbol { width: 38px; height: 38px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 10px; color: var(--brand); background: var(--surface); border: 1px solid var(--line); font-size: 18px; }
+    .action-button.danger .action-symbol { color: var(--bad); }
+    .action-name { font-weight: 700; }
+    .action-desc { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .table-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+    .filters { display: flex; gap: 7px; flex-wrap: wrap; }
+    .filter-button { height: 33px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; color: var(--muted); background: var(--surface); cursor: pointer; }
+    .filter-button.active { color: var(--brand); border-color: color-mix(in srgb, var(--brand) 55%, var(--line)); background: var(--brand-soft); font-weight: 650; }
+    .search { width: min(280px, 100%); height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: 9px; color: var(--text); background: var(--surface-2); outline: none; }
+    .search:focus { border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 12%, transparent); }
+    .table-scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 1080px; }
+    th, td { padding: 13px 18px; text-align: left; border-bottom: 1px solid var(--line); }
+    th { color: var(--muted); font-size: 12px; font-weight: 650; background: var(--surface-2); }
+    td { font-size: 14px; }
+    tbody tr:hover { background: color-mix(in srgb, var(--brand-soft) 45%, transparent); }
+    .node-name { max-width: 440px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+    .table-footer { min-height: 54px; padding: 10px 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px; color: var(--muted); font-size: 13px; }
+    .pager { display: flex; align-items: center; gap: 8px; }
+    .pager button { width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); cursor: pointer; }
+    .pager button:disabled { opacity: .4; cursor: default; }
+    .activity { padding: 4px 18px 12px; }
+    .activity-item { display: grid; grid-template-columns: 160px 110px 90px minmax(0, 1fr); gap: 14px; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+    .activity-item:last-child { border-bottom: 0; }
+    .empty { padding: 34px 20px; text-align: center; color: var(--muted); }
+    footer { display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; margin-top: 24px; color: var(--muted); font-size: 12px; }
+    .modal-backdrop { position: fixed; inset: 0; z-index: 100; display: none; place-items: center; padding: 20px; background: rgba(8, 14, 17, .56); backdrop-filter: blur(3px); }
+    .modal-backdrop.open { display: grid; }
+    .modal { width: min(470px, 100%); border: 1px solid var(--line-strong); border-radius: 15px; background: var(--surface); box-shadow: 0 24px 70px rgba(0,0,0,.28); }
+    .modal-head { padding: 20px 22px 12px; font-size: 19px; font-weight: 720; }
+    .modal-body { padding: 0 22px 20px; color: var(--muted); }
+    .modal-warning { margin-top: 14px; padding: 11px 12px; border-radius: 9px; background: var(--warn-soft); color: var(--warn); font-size: 13px; }
+    .modal-progress { display: none; margin-top: 16px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
+    .modal-progress.active { display: block; }
+    .modal-progress-head { display: flex; justify-content: space-between; gap: 12px; color: var(--text); font-size: 13px; }
+    .modal-progress-head span { color: var(--muted); font: 12px/1.5 var(--mono); }
+    .modal-progress-track { height: 7px; margin-top: 10px; overflow: hidden; border-radius: 99px; background: var(--line); }
+    .modal-progress-bar { width: 38%; height: 100%; border-radius: inherit; background: var(--brand); animation: modal-progress 1.25s ease-in-out infinite; }
+    .modal-progress.determinate .modal-progress-bar { animation: none; transition: width .25s ease; }
+    .modal-progress-copy { margin-top: 9px; color: var(--muted); font-size: 12px; line-height: 1.55; }
+    @keyframes modal-progress { 0% { transform: translateX(-105%); } 55% { transform: translateX(105%); } 100% { transform: translateX(270%); } }
+    .modal-actions { padding: 14px 22px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--line); }
+    .btn { height: 38px; padding: 0 16px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-weight: 650; }
+    .btn.primary { color: white; border-color: var(--brand); background: var(--brand); }
+    .btn.danger { color: white; border-color: var(--bad); background: var(--bad); }
+    .btn:disabled { cursor: not-allowed; opacity: .52; }
+    .btn.loading::before { content: ''; display: inline-block; width: 13px; height: 13px; margin-right: 8px; vertical-align: -2px; border: 2px solid rgba(255,255,255,.42); border-top-color: currentColor; border-radius: 50%; animation: button-spin .8s linear infinite; }
+    @keyframes button-spin { to { transform: rotate(360deg); } }
+    .toast-wrap { position: fixed; right: 20px; bottom: 20px; z-index: 120; display: grid; gap: 10px; }
+    .toast { min-width: 280px; max-width: 420px; padding: 13px 15px; border: 1px solid var(--line-strong); border-left: 4px solid var(--good); border-radius: 10px; background: var(--surface); box-shadow: var(--shadow); }
+    .toast.bad { border-left-color: var(--bad); }
+    @media (max-width: 1200px) {
+      .cards { grid-template-columns: repeat(3, 1fr); }
+      .layout { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 760px) {
+      .topbar { height: auto; min-height: 62px; }
+      .topbar-inner { padding: 11px 16px; align-items: flex-start; }
+      .brand-sub, .live-state span { display: none; }
+      .top-actions { gap: 8px; }
+      main { padding: 24px 16px 40px; }
+      .hero { display: block; }
+      .refresh-note { padding-top: 10px; }
+      .cards { grid-template-columns: repeat(2, 1fr); }
+      .card { min-height: 118px; padding: 15px; }
+      .metric { font-size: 25px; }
+      .action-grid { grid-template-columns: 1fr; }
+      .panel-header { align-items: flex-start; flex-direction: column; }
+      .chart-wrap { height: 280px; }
+      .activity-item { grid-template-columns: 1fr auto; gap: 5px 10px; }
+      .activity-item > :nth-child(3), .activity-item > :nth-child(4) { grid-column: 1 / -1; }
+    }
+    @media (max-width: 440px) {
+      .cards { grid-template-columns: 1fr; }
+      .theme-select { width: 74px; padding-left: 7px; }
+      .notice { font-size: 13px; }
+      .table-footer { align-items: flex-start; flex-direction: column; }
+    }
+    /* v1.1：参考内部工作台的固定侧栏、扁平面板与彩色指标卡。 */
+    :root {
+      --brand: #0f766e;
+      --brand-2: #0d9488;
+      --brand-soft: #e8f7f4;
+      --blue: #526ee8;
+      --blue-soft: #edf1ff;
+      --bg: #f6f7fb;
+      --shadow: 0 1px 2px rgba(18, 28, 45, .035);
+    }
+    :root[data-theme="dark"] {
+      --brand: #5eead4;
+      --brand-2: #2dd4bf;
+      --brand-soft: #173c38;
+      --blue: #8aa2ff;
+      --blue-soft: #242d4e;
+      --bg: #101216;
+    }
+    .app-sidebar {
+      position: fixed;
+      inset: 0 auto 0 0;
+      z-index: 30;
+      width: 248px;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--line);
+      background: var(--surface);
+    }
+    .sidebar-brand { height: 76px; padding: 17px 20px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--line); }
+    .sidebar-brand .brand-mark { background: transparent; box-shadow: none; }
+    .sidebar-nav { padding: 16px 12px; display: grid; gap: 6px; }
+    .sidebar-section-label { margin: 12px 13px 2px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    .sidebar-link { min-height: 44px; padding: 0 13px; display: flex; align-items: center; gap: 11px; color: var(--muted); text-decoration: none; border-radius: 10px; font-weight: 600; }
+    .sidebar-link:hover { color: var(--text); background: var(--surface-2); }
+    .sidebar-link.active { color: white; background: linear-gradient(135deg, #0f766e, #0d9488); box-shadow: 0 8px 18px rgba(15, 118, 110, .18); }
+    .sidebar-icon { width: 22px; text-align: center; font-size: 17px; }
+    .sidebar-external-mark { margin-left: auto; color: var(--muted); font-size: 12px; }
+    .sidebar-spacer { flex: 1; }
+    .sidebar-status { margin: 14px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
+    .sidebar-status-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 650; }
+    .sidebar-status-meta { margin-top: 9px; color: var(--muted); font-size: 12px; }
+    .topbar { margin-left: 248px; }
+    .topbar-inner { max-width: none; padding: 0 28px; }
+    .topbar .brand-mark { display: none; }
+    .topbar .brand-title { font-size: 14px; }
+    .topbar .brand-sub { display: inline; margin-left: 8px; }
+    main { max-width: none; margin-left: 248px; padding: 30px 28px 48px; }
+    .hero { margin-bottom: 20px; }
+    .eyebrow { color: var(--muted); letter-spacing: .02em; text-transform: none; }
+    .cards { grid-template-columns: repeat(4, minmax(170px, 1fr)); gap: 16px; }
+    .card { position: relative; min-height: 132px; border-radius: 13px; overflow: hidden; box-shadow: none; }
+    .card::before { content: ""; position: absolute; inset: 0 0 auto; height: 3px; background: var(--brand); }
+    .card:nth-child(2)::before { background: #22b78b; }
+    .card:nth-child(3)::before { background: #8b5cf6; }
+    .card:nth-child(4)::before { background: #f1a52b; }
+    .card:nth-child(5)::before { background: #4b82e6; }
+    .card:nth-child(6)::before { background: #e0617a; }
+    .card:nth-child(7)::before { background: #18a999; }
+    .card:nth-child(8)::before { background: #7c67d9; }
+    .panel { box-shadow: none; border-radius: 13px; }
+    .country-content { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 16px; padding: 18px; }
+    .egress-card { padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
+    .egress-code { margin-top: 10px; font-size: 38px; font-weight: 760; letter-spacing: -.04em; }
+    .country-grid { display: grid; grid-template-columns: repeat(3, minmax(150px, 1fr)); gap: 12px; }
+    .country-card { padding: 14px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); }
+    .country-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .country-name { font-weight: 700; }
+    .country-flag { font-size: 22px; }
+    .country-metrics { margin-top: 10px; color: var(--muted); font-size: 12px; }
+    .country-bar { height: 6px; margin-top: 9px; overflow: hidden; border-radius: 999px; background: var(--line); }
+    .country-bar > i { display: block; height: 100%; border-radius: inherit; background: var(--good); }
+    .probe-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .probe-progress { padding: 13px 18px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+    .probe-progress[hidden] { display: none; }
+    .probe-progress-row { display: flex; justify-content: space-between; gap: 16px; color: var(--muted); font-size: 13px; }
+    .progress-track { height: 7px; margin-top: 9px; overflow: hidden; border-radius: 999px; background: var(--line); }
+    .progress-track > i { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--brand); transition: width .25s ease; }
+    .node-meta { margin-top: 3px; color: var(--muted); font-size: 11px; font-family: var(--mono); }
+    .node-country { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+    .toolbar-select { height: 36px; min-width: 130px; padding: 0 30px 0 10px; border: 1px solid var(--line); border-radius: 9px; color: var(--text); background: var(--surface-2); outline: none; }
+    .mini-button { display: inline-flex; align-items: center; justify-content: center; height: 30px; margin-top: 5px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--brand); background: var(--surface); cursor: pointer; font-size: 12px; font-weight: 650; text-decoration: none; }
+    .mini-button:hover { border-color: var(--brand); background: var(--brand-soft); }
+    .mini-button:disabled { opacity: .5; cursor: default; }
+    .section-space { margin-bottom: 20px; }
+    .app-page { display: none; }
+    .app-page.active { display: block; animation: page-in .16s ease-out; }
+    @keyframes page-in { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+    .mobile-page-select { display: none; }
+    .page-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin-bottom: 20px; }
+    .page-heading h1 { font-size: clamp(24px, 2.4vw, 31px); }
+    .page-heading p { max-width: 820px; margin: 7px 0 0; color: var(--muted); font-size: 15px; }
+    .page-tabs { width: fit-content; display: flex; gap: 4px; margin-bottom: 18px; padding: 4px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); box-shadow: var(--shadow); }
+    .page-tab { min-height: 36px; padding: 0 16px; border: 0; border-radius: 8px; color: var(--muted); background: transparent; cursor: pointer; }
+    .page-tab.active { color: white; background: var(--brand); font-weight: 650; }
+    .source-view { display: none; }
+    .source-view.active { display: block; }
+    .custom-view { display: none; }
+    .custom-view.active { display: block; }
+    .country-port-body { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(300px, .85fr); gap: 18px; padding: 18px; }
+    .country-port-options { display: grid; grid-template-columns: repeat(3, minmax(150px, 1fr)); gap: 10px; }
+    .country-choice { display: flex; align-items: flex-start; gap: 10px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); cursor: pointer; }
+    .country-choice:has(input:checked) { border-color: var(--brand); background: var(--brand-soft); }
+    .country-choice input { margin-top: 3px; accent-color: var(--brand); }
+    .country-choice strong { display: block; }
+    .country-choice small { display: block; margin-top: 4px; color: var(--muted); }
+    .country-port-list { display: grid; gap: 9px; }
+    .country-port-row { display: grid; grid-template-columns: minmax(90px, .7fr) minmax(0, 1.3fr); gap: 12px; align-items: center; padding: 12px 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+    .proxy-address { min-width: 0; color: var(--brand); font: 650 12px/1.45 var(--mono); overflow-wrap: anywhere; }
+    .country-port-note { margin-top: 12px; color: var(--muted); font-size: 12px; line-height: 1.7; }
+    .config-grid { display: grid; grid-template-columns: repeat(3, minmax(180px, 1fr)); gap: 16px; padding: 18px; align-items: end; }
+    .form-field { min-width: 0; display: grid; gap: 7px; }
+    .form-field label { color: var(--text); font-size: 13px; font-weight: 650; }
+    .form-field small { color: var(--muted); font-size: 12px; }
+    .form-wide { grid-column: 1 / -1; }
+    .control { width: 100%; min-height: 40px; padding: 8px 11px; color: var(--text); background: var(--surface-2); border: 1px solid var(--line); border-radius: 9px; outline: none; }
+    .control:focus { border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 12%, transparent); }
+    textarea.control { resize: vertical; line-height: 1.55; }
+    .code-area { font: 13px/1.55 var(--mono); }
+    .config-action { grid-column: 1 / -1; min-height: 48px; display: flex; align-items: center; justify-content: flex-end; gap: 14px; }
+    .config-action .panel-sub { margin-right: auto; }
+    .source-cards { display: grid; grid-template-columns: repeat(4, minmax(160px, 1fr)); gap: 12px; padding: 18px 18px 0; }
+    .source-card { padding: 14px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-2); }
+    .source-card-head { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+    .source-card strong { font-size: 14px; }
+    .source-card-number { margin-top: 10px; font-size: 24px; font-weight: 720; letter-spacing: -.03em; }
+    .source-card-meta { margin-top: 4px; color: var(--muted); font-size: 12px; }
+    .quick-picker { display: grid; grid-template-columns: minmax(220px,1fr) minmax(520px,1.45fr); gap: 18px; align-items: end; margin: 16px 18px 0; padding: 15px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-2); }
+    .quick-picker-copy strong { display: block; font-size: 14px; }
+    .quick-picker-copy span { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .quick-picker-controls { display: grid; grid-template-columns: minmax(120px,.7fr) minmax(190px,1.2fr) 110px auto; gap: 9px; align-items: end; }
+    .quick-picker-controls .btn { min-height: 40px; white-space: nowrap; }
+    .catalog-toolbar { display: grid; grid-template-columns: minmax(145px,.7fr) minmax(165px,.8fr) minmax(145px,.7fr) minmax(260px,1.8fr); gap: 10px; padding: 16px 18px; border-bottom: 1px solid var(--line); }
+    .bulk-toolbar { min-height: 52px; display: flex; align-items: center; gap: 10px; padding: 8px 18px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--brand-soft) 35%, var(--surface)); }
+    .bulk-toolbar .bulk-meta { margin-right: auto; color: var(--muted); font-size: 13px; }
+    .candidate-checkbox { width: 16px; height: 16px; accent-color: var(--brand); cursor: pointer; }
+    .candidate-checkbox:disabled { cursor: default; opacity: .45; }
+    .candidate-select-col { width: 42px; text-align: center; }
+    .candidate-table-wrap { max-height: min(54vh, 620px); }
+    .candidate-address { max-width: 330px; font: 12px/1.55 var(--mono); overflow-wrap: anywhere; }
+    .candidate-result { min-width: 180px; }
+    .candidate-actions { display: flex; gap: 7px; flex-wrap: wrap; }
+    .selection-layout { display: grid; grid-template-columns: minmax(0,1.6fr) minmax(280px,.65fr); gap: 18px; padding: 18px; }
+    .selected-list { display: grid; gap: 9px; align-content: start; }
+    .selected-row { display: grid; grid-template-columns: 82px minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
+    .selected-row .mono { min-width: 0; overflow-wrap: anywhere; }
+    .reverse-form { display: grid; gap: 14px; align-content: start; padding: 15px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-2); }
+    .reverse-state { padding: 10px 11px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); font-size: 12px; line-height: 1.65; }
+    .reverse-state strong { display: block; color: var(--text); font-size: 13px; }
+    .reverse-state.pending { border-color: color-mix(in srgb, var(--brand) 42%, var(--line)); background: var(--brand-soft); }
+    .reverse-state.warning { border-color: color-mix(in srgb, var(--warn) 38%, var(--line)); background: var(--warn-soft); color: var(--warn); }
+    .runtime-route { display: grid; grid-template-columns: repeat(3, minmax(170px, 1fr)); gap: 12px; padding: 18px; }
+    .runtime-route-item { padding: 13px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
+    .runtime-route-item span { display: block; color: var(--muted); font-size: 12px; }
+    .runtime-route-item strong { display: block; margin-top: 5px; font-size: 15px; overflow-wrap: anywhere; }
+    .runtime-route-note { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.65; }
+    .check-row { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+    .check-row input { accent-color: var(--brand); }
+    .custom-access-grid { display: grid; grid-template-columns: minmax(0,1.15fr) minmax(320px,.85fr); gap: 18px; }
+    .endpoint-list { display: grid; gap: 10px; padding: 18px; }
+    .endpoint-row { display: grid; grid-template-columns: 110px minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 12px 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
+    .endpoint-row > span { color: var(--muted); font-size: 12px; }
+    .endpoint-row code, .endpoint-row a { min-width: 0; color: var(--brand); font: 650 12px/1.55 var(--mono); overflow-wrap: anywhere; text-decoration: none; }
+    .endpoint-row a:hover { text-decoration: underline; }
+    .custom-actions { display: flex; gap: 9px; flex-wrap: wrap; padding: 0 18px 18px; }
+    .custom-country-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; padding: 18px; }
+    .custom-country-card { padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
+    .custom-country-card strong { display: block; margin-top: 7px; font-size: 18px; }
+    .custom-country-card span { color: var(--muted); font-size: 12px; }
+    .custom-pool-link { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin: 0 18px 18px; padding: 13px 14px; border: 1px solid color-mix(in srgb, var(--brand) 38%, var(--line)); border-radius: 10px; background: var(--brand-soft); color: var(--text); text-decoration: none; }
+    .custom-pool-link span { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; }
+    .pool-builder-grid { display: grid; grid-template-columns: minmax(180px,1fr) minmax(150px,.8fr) minmax(180px,1fr) minmax(130px,.65fr); gap: 14px; padding: 18px; }
+    .pool-output-field { grid-column: 1 / -1; }
+    .pool-output-options { display: grid; grid-template-columns: repeat(3,minmax(150px,1fr)); gap: 10px; }
+    .pool-output-choice { display: flex; gap: 10px; align-items: flex-start; padding: 12px 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); cursor: pointer; }
+    .pool-output-choice:has(input:checked) { border-color: var(--brand); background: var(--brand-soft); }
+    .pool-output-choice input { margin-top: 3px; accent-color: var(--brand); }
+    .pool-output-choice strong { display: block; font-size: 13px; }
+    .pool-output-choice small { display: block; margin-top: 3px; color: var(--muted); line-height: 1.5; }
+    .pool-build-action { grid-column: 1 / -1; display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding-top: 2px; }
+    .pool-build-action .panel-sub { margin-right: auto; }
+    .pool-job { margin: 0 18px 18px; padding: 15px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-2); }
+    .pool-job-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .pool-job-title { font-size: 14px; font-weight: 700; }
+    .pool-job-copy { margin-top: 7px; color: var(--muted); font-size: 13px; line-height: 1.65; }
+    .pool-job-progress { height: 7px; margin-top: 13px; overflow: hidden; border-radius: 999px; background: var(--line); }
+    .pool-job-progress > span { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--brand); transition: width .25s ease; }
+    .pool-job-meta { display: flex; gap: 10px 18px; flex-wrap: wrap; margin-top: 11px; color: var(--muted); font-size: 12px; }
+    .pool-job-actions { display: flex; gap: 8px; margin-top: 12px; }
+    .pool-profile-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; padding: 18px; }
+    .pool-profile-card { min-width: 0; padding: 15px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-2); }
+    .pool-profile-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .pool-profile-name { min-width: 0; font-size: 15px; font-weight: 720; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pool-profile-spec { margin-top: 10px; color: var(--text); font-size: 13px; font-weight: 650; line-height: 1.6; }
+    .pool-profile-outputs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .pool-profile-output { padding: 2px 7px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: var(--surface); font-size: 11px; }
+    .pool-profile-result { min-height: 40px; margin-top: 10px; color: var(--muted); font-size: 12px; line-height: 1.65; }
+    .pool-profile-actions { display: flex; gap: 8px; margin-top: 13px; }
+    .pool-profile-actions .btn { flex: 1; padding: 0 10px; }
+    @media (max-width: 1280px) {
+      .cards { grid-template-columns: repeat(2, 1fr); }
+      .country-grid { grid-template-columns: repeat(2, 1fr); }
+      .country-port-options { grid-template-columns: repeat(2, 1fr); }
+      .source-cards { grid-template-columns: repeat(2, 1fr); }
+      .config-grid { grid-template-columns: repeat(2, minmax(180px, 1fr)); }
+      .quick-picker { grid-template-columns: 1fr; }
+      .pool-builder-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .pool-profile-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .config-action { grid-column: 1 / -1; }
+    }
+    @media (max-width: 900px) {
+      .app-sidebar { display: none; }
+      .topbar { margin-left: 0; }
+      .topbar .brand-mark { display: grid; flex: 0 0 auto; background: transparent; box-shadow: none; }
+      main { margin-left: 0; }
+      .country-content { grid-template-columns: 1fr; }
+      .country-port-body { grid-template-columns: 1fr; }
+      .mobile-page-select { display: block; max-width: 145px; }
+      .selection-layout { grid-template-columns: 1fr; }
+      .runtime-route { grid-template-columns: 1fr; }
+      .custom-access-grid { grid-template-columns: 1fr; }
+      .catalog-toolbar { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .quick-picker-controls { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .pool-output-options { grid-template-columns: 1fr; }
+      .pool-profile-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 620px) {
+      .cards, .country-grid, .country-port-options, .source-cards, .config-grid, .catalog-toolbar, .quick-picker-controls, .custom-country-grid, .pool-builder-grid { grid-template-columns: 1fr; }
+      .topbar .brand-sub { display: none; }
+      .topbar-inner { flex-wrap: wrap; padding: 10px 16px 12px; }
+      .topbar .brand { width: 100%; }
+      .top-actions { width: 100%; }
+      .top-actions .live-state { margin-right: auto; }
+      .mobile-page-select, .theme-select { min-width: 0; max-width: none; flex: 1 1 0; }
+      .page-heading { display: block; }
+      .selected-row { grid-template-columns: 1fr; }
+      .endpoint-row { grid-template-columns: 1fr; }
+      .page-tabs { width: 100%; }
+      .page-tab { flex: 1 1 0; padding: 0 8px; }
+      .quick-picker { margin-inline: 12px; }
+      .bulk-toolbar { align-items: stretch; flex-direction: column; }
+      .bulk-toolbar .bulk-meta { margin-right: 0; }
+    }
+    :where(button, a, input, select, textarea, summary):focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--brand) 28%, transparent);
+      outline-offset: 2px;
+    }
+    .top-refresh { min-width: 92px; height: 38px; white-space: nowrap; }
+    .top-refresh.loading { cursor: wait; }
+    .top-refresh.loading::before { content: ''; width: 13px; height: 13px; margin-right: 7px; display: inline-block; vertical-align: -2px; border: 2px solid var(--line-strong); border-top-color: var(--brand); border-radius: 50%; animation: button-spin .8s linear infinite; }
+    .system-banner { display: none; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 20px; padding: 14px 16px; border: 1px solid color-mix(in srgb, var(--bad) 35%, var(--line)); border-radius: 12px; background: var(--bad-soft); }
+    .system-banner.show { display: flex; }
+    .system-banner strong { display: block; color: var(--bad); }
+    .system-banner span { display: block; margin-top: 3px; color: var(--muted); overflow-wrap: anywhere; }
+    .system-banner .btn { flex: 0 0 auto; white-space: nowrap; }
+    .workflow-panel { margin-bottom: 20px; }
+    .workflow-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 18px; }
+    .workflow-step { min-height: 112px; padding: 15px; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 11px; color: var(--text); background: var(--surface-2); text-decoration: none; transition: border-color .15s, background .15s, transform .15s; }
+    .workflow-step:hover { border-color: var(--brand); background: var(--brand-soft); transform: translateY(-1px); }
+    .workflow-number { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 8px; color: white; background: var(--brand); font-size: 12px; font-weight: 750; }
+    .workflow-step strong { margin-top: 12px; }
+    .workflow-step span:last-child { margin-top: 4px; color: var(--muted); font-size: 13px; line-height: 1.55; }
+    .advanced-disclosure { margin: 16px 18px 18px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); overflow: hidden; }
+    .advanced-disclosure > summary { position: relative; min-height: 52px; padding: 0 15px; display: flex; align-items: center; justify-content: space-between; gap: 14px; cursor: pointer; font-weight: 700; list-style: none; }
+    .advanced-disclosure > summary::-webkit-details-marker { display: none; }
+    .advanced-disclosure > summary::after { content: '展开'; color: var(--brand); font-size: 12px; font-weight: 650; }
+    .advanced-disclosure[open] > summary { border-bottom: 1px solid var(--line); }
+    .advanced-disclosure[open] > summary::after { content: '收起'; }
+    .advanced-disclosure > summary span { color: var(--muted); font-size: 12px; font-weight: 500; }
+    .advanced-disclosure > summary strong { color: var(--text); font-size: 14px; }
+    .advanced-disclosure .catalog-toolbar { padding-inline: 0; margin-inline: 18px; }
+    .advanced-disclosure .table-footer { border-top: 0; }
+    .advanced-stack { display: grid; gap: 16px; padding: 16px; }
+    .advanced-stack > .panel { margin: 0; }
+    .modal-error { margin-top: 14px; padding: 11px 12px; border: 1px solid color-mix(in srgb, var(--bad) 35%, var(--line)); border-radius: 9px; background: var(--bad-soft); color: var(--bad); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+    .setup-summary { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; padding: 18px; }
+    .setup-summary-item { padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
+    .setup-summary-item span { display: block; color: var(--muted); font-size: 12px; }
+    .setup-summary-item strong { display: block; margin-top: 5px; }
+    @media (max-width: 900px) {
+      .workflow-grid, .setup-summary { grid-template-columns: 1fr; }
+      .top-refresh { min-width: 42px; width: 42px; padding: 0; font-size: 0; }
+      .top-refresh::after { content: '↻'; font-size: 18px; }
+      .top-refresh.loading::after { content: ''; }
+    }
+    @media (max-width: 620px) {
+      body { font-size: 16px; }
+      .system-banner { align-items: stretch; flex-direction: column; }
+      .advanced-disclosure { margin-inline: 12px; }
+      .advanced-disclosure > summary { align-items: flex-start; flex-direction: column; justify-content: center; padding-block: 11px; }
+      .advanced-disclosure > summary::after { position: absolute; right: 30px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <aside class="app-sidebar" aria-label="主导航">
+    <div class="sidebar-brand">
+      <div class="brand-mark" aria-hidden="true">
+        <img src="/logo.svg" alt="">
+      </div>
+      <div><div class="brand-title">ProxyTunnel</div><div class="brand-sub">节点池控制台</div></div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-section-label">常用</div>
+      <a class="sidebar-link active" href="#overview"><span class="sidebar-icon">▦</span><span>仪表盘</span></a>
+      <a class="sidebar-link" href="#custom"><span class="sidebar-icon">＋</span><span>创建代理池</span></a>
+      <a class="sidebar-link" href="#nodes"><span class="sidebar-icon">◫</span><span>节点明细</span></a>
+      <a class="sidebar-link" href="#countries"><span class="sidebar-icon">◎</span><span>国家与端口</span></a>
+      <div class="sidebar-section-label">高级</div>
+      <a class="sidebar-link" href="#sources"><span class="sidebar-icon">◇</span><span>节点来源</span></a>
+      <a class="sidebar-link" href="#operations"><span class="sidebar-icon">⚙</span><span>设置与维护</span></a>
+    </nav>
+    <div class="sidebar-spacer"></div>
+    <div class="sidebar-status">
+      <div class="sidebar-status-head"><span>代理任务</span><span id="sideStatusPill" class="pill">检查中</span></div>
+      <div id="sideSummary" class="sidebar-status-meta">正在读取代理服务状态</div>
+    </div>
+  </aside>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <img src="/logo.svg" alt="">
+        </div>
+        <div>
+          <div id="pageTitle" class="brand-title">工作台 / 代理池仪表盘</div>
+          <div class="brand-sub">节点调度与出口监控</div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <div class="live-state"><i id="liveDot" class="live-dot"></i><span id="liveText">正在连接</span></div>
+        <select id="mobilePageSelect" class="theme-select mobile-page-select" aria-label="页面导航">
+          <option value="overview">仪表盘</option>
+          <option value="custom">创建代理池</option>
+          <option value="nodes">节点明细</option>
+          <option value="countries">国家与端口</option>
+          <option value="sources">节点来源（高级）</option>
+          <option value="operations">设置与维护</option>
+        </select>
+        <button id="refreshAllButton" class="btn top-refresh" type="button">立即刷新</button>
+        <select id="themeSelect" class="theme-select" aria-label="系统配色">
+          <option value="system">跟随系统</option>
+          <option value="light">浅色</option>
+          <option value="dark">深色</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div id="systemBanner" class="system-banner" role="alert" aria-live="polite">
+      <div><strong id="systemBannerTitle">服务连接异常</strong><span id="systemBannerText">正在读取详细原因</span></div>
+      <button id="systemBannerAction" class="btn" type="button">打开设置</button>
+    </div>
+    <section class="app-page active" data-page="overview">
+    <section class="hero">
+      <div>
+        <div class="eyebrow">Proxy Operations</div>
+        <h1>代理池仪表盘</h1>
+        <p>查看出口国家、健康节点、实时吞吐、连接延迟和轮转稳定性。数据每 15 秒更新，趋势最多保留 30 天。</p>
+      </div>
+      <div id="lastUpdated" class="refresh-note">尚未更新</div>
+    </section>
+
+    <div class="notice">
+      <div class="notice-icon">ⓘ</div>
+      <div><strong>身份与节点是两件事：</strong> 当前是 <b id="noticeIdentities">—</b> 个代理身份，通过 <b id="noticeNodes">—</b> 个 Cloudflare 前置节点轮转。节点不可用会被健康检查剔除，并不代表账号失效。 <span>页面不会展示 UUID、订阅令牌或控制器密码。</span></div>
+    </div>
+
+    <section class="panel workflow-panel" aria-label="常用操作">
+      <div class="panel-header"><div><div class="panel-title">从这里开始</div><div class="panel-sub">普通使用只需要三个动作，候选源、反代和探针参数都放在高级页面</div></div><span class="pill good">推荐流程</span></div>
+      <div class="workflow-grid">
+        <a class="workflow-step" href="#custom" data-open-page="custom" data-custom-target="build"><span class="workflow-number">1</span><strong>创建代理池</strong><span>选择国家、节点数量以及端口 / Clash / V2RayN 输出。</span></a>
+        <a class="workflow-step" href="#custom" data-open-page="custom" data-custom-target="runtime"><span class="workflow-number">2</span><strong>复制使用地址</strong><span>构建完成后直接复制局域网端口或订阅链接。</span></a>
+        <a class="workflow-step" href="#nodes" data-open-page="nodes"><span class="workflow-number">3</span><strong>查看真实状态</strong><span>按国家、代理池和可用性筛选运行节点与真实出口。</span></a>
+      </div>
+    </section>
+
+    <section class="cards" aria-label="关键指标">
+      <article class="card"><div class="card-head"><span>服务状态</span><span class="card-icon">◉</span></div><div id="serviceMetric" class="metric">—</div><div id="serviceFoot" class="card-foot">等待控制端响应</div></article>
+      <article class="card"><div class="card-head"><span>当前出口</span><span class="card-icon">◎</span></div><div id="egressMetric" class="metric">—</div><div id="egressFoot" class="card-foot">等待 7890 出口采样</div></article>
+      <article class="card"><div class="card-head"><span>健康节点</span><span class="card-icon">✓</span></div><div id="aliveMetric" class="metric">—</div><div id="aliveFoot" class="card-foot">等待节点健康检查</div></article>
+      <article class="card"><div class="card-head"><span>可用率</span><span class="card-icon">%</span></div><div id="availabilityMetric" class="metric">—</div><div id="availabilityFoot" class="card-foot">按当前节点状态计算</div></article>
+      <article class="card"><div class="card-head"><span>P95 延迟</span><span class="card-icon">ms</span></div><div id="latencyMetric" class="metric">—</div><div id="latencyFoot" class="card-foot">健康节点最近一次检测</div></article>
+      <article class="card"><div class="card-head"><span>当前连接</span><span class="card-icon">↔</span></div><div id="connectionMetric" class="metric">—</div><div id="connectionFoot" class="card-foot">累计流量 —</div></article>
+      <article class="card"><div class="card-head"><span>实时下行</span><span class="card-icon">↓</span></div><div id="downloadMetric" class="metric">—</div><div id="downloadFoot" class="card-foot">代理池总吞吐</div></article>
+      <article class="card"><div class="card-head"><span>实时上行</span><span class="card-icon">↑</span></div><div id="uploadMetric" class="metric">—</div><div id="uploadFoot" class="card-foot">代理池总吞吐</div></article>
+    </section>
+
+    <section class="layout">
+      <article class="panel">
+        <div class="panel-header">
+          <div><div class="panel-title">节点可用性趋势</div><div class="panel-sub">健康节点数量与 P95 延迟；移动鼠标可查看具体时间和数值</div></div>
+          <div id="rangeTabs" class="segmented" role="group" aria-label="时间范围">
+            <button class="segment active" data-range="24h">24 小时</button>
+            <button class="segment" data-range="7d">7 天</button>
+            <button class="segment" data-range="30d">30 天</button>
+          </div>
+        </div>
+        <div id="chartWrap" class="chart-wrap">
+          <canvas id="historyChart"></canvas>
+          <div id="chartTooltip" class="chart-tooltip"></div>
+        </div>
+        <div class="chart-legend"><span class="legend-item"><i class="legend-line"></i>健康节点</span><span class="legend-item"><i class="legend-line blue"></i>P95 延迟</span><span id="historyCount">暂无历史点</span></div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-header"><div><div class="panel-title">Cloudflare 与订阅源</div><div class="panel-sub">只显示非敏感运行信息</div></div><span id="cfPill" class="pill">检查中</span></div>
+        <div class="detail-list">
+          <div class="detail-row"><span class="detail-label">EdgeTunnel 版本</span><span id="cfBuild" class="detail-value mono">—</span></div>
+          <div class="detail-row"><span class="detail-label">边缘位置</span><span id="cfColo" class="detail-value">—</span></div>
+          <div class="detail-row"><span class="detail-label">KV 状态 / 延迟</span><span id="cfKV" class="detail-value">—</span></div>
+          <div class="detail-row"><span class="detail-label">订阅来源</span><span id="subscriptionHost" class="detail-value mono">—</span></div>
+          <div class="detail-row"><span class="detail-label">优选生成</span><span id="cfNodeGeneration" class="detail-value">—</span></div>
+          <div class="detail-row"><span class="detail-label">代理身份</span><span id="cfIdentity" class="detail-value">—</span></div>
+          <div class="detail-row"><span class="detail-label">轮转组</span><span id="groupInfo" class="detail-value">—</span></div>
+          <div class="detail-row"><span class="detail-label">轮转算法</span><span id="rotationInfo" class="detail-value">—</span></div>
+          <div class="detail-row"><span class="detail-label">反代拨号并发</span><span id="concurrencyInfo" class="detail-value">—</span></div>
+          <div class="detail-row"><span class="detail-label">订阅更新时间</span><span id="providerUpdated" class="detail-value">—</span></div>
+          <div class="detail-row"><span class="detail-label">计划任务</span><span id="taskState" class="detail-value">—</span></div>
+        </div>
+      </article>
+    </section>
+
+    </section>
+
+    <section class="app-page" data-page="countries">
+      <div class="page-heading"><div><div class="eyebrow">Verified Egress</div><h1>国家与出口</h1><p>统一展示 7890 主池与 7891 自选池从代理池服务器实测通过的国家；未验证候选仍只在“节点扩充”页面出现。</p></div><div id="countryPageUpdated" class="refresh-note">等待出口数据</div></div>
+    <section id="countries" class="panel section-space">
+      <div class="panel-header">
+        <div><div class="panel-title">真实出口国家分布</div><div class="panel-sub">逐个切换隔离探针并访问 Cloudflare Trace；不再根据节点名称猜国家</div></div>
+        <div class="probe-tools"><span id="egressPill" class="pill">等待取样</span><button id="probeButton" class="btn" data-action="egress_scan">重新扫描真实出口</button></div>
+      </div>
+      <div id="probeProgress" class="probe-progress" hidden>
+        <div class="probe-progress-row"><span id="probeProgressText">准备扫描</span><strong id="probeProgressCount">0 / 0</strong></div>
+        <div class="progress-track"><i id="probeProgressBar"></i></div>
+      </div>
+      <div class="country-content">
+        <div class="egress-card">
+          <div class="detail-label">当前实际出口</div>
+          <div id="egressCode" class="egress-code">—</div>
+          <div id="egressName" class="panel-title">等待 7890 取样</div>
+          <div id="egressMeta" class="panel-sub">等待主代理出口取样</div>
+        </div>
+        <div id="countryGrid" class="country-grid"><div class="empty">正在读取真实出口探测结果…</div></div>
+      </div>
+    </section>
+
+    <section id="country-ports" class="panel section-space">
+      <div class="panel-header">
+        <div><div class="panel-title">国家专用代理端口</div><div class="panel-sub">仅使用连续两次验证国家一致且当前可用的节点；访问端口即可自动轮转该国家节点</div></div>
+        <button id="applyCountryPorts" class="btn primary" data-action="country_ports" disabled>应用端口配置</button>
+      </div>
+      <div class="country-port-body">
+        <div>
+          <div class="detail-label" style="margin-bottom:10px">选择要开放的国家</div>
+          <div id="countryPortOptions" class="country-port-options"><div class="empty">正在读取连续验证结果…</div></div>
+          <div class="country-port-note">端口只在公司局域网开放。修改时仅重启 17891/19091 隔离实例，7890 主代理保持运行。</div>
+        </div>
+        <div>
+          <div class="detail-label" style="margin-bottom:10px">当前访问地址</div>
+          <div id="countryPortList" class="country-port-list"><div class="empty">尚未开放国家专用端口</div></div>
+          <div id="countryPortUpdated" class="country-port-note">等待配置状态</div>
+        </div>
+      </div>
+    </section>
+
+    </section>
+
+    <section class="app-page" data-page="sources">
+      <div class="page-heading"><div><div class="eyebrow">Pool Expansion</div><h1>节点扩充与自选</h1><p>小白模式可把官方随机优选扩到 1–99 个；高手模式可维护自定义优选地址，并从多国家 ProxyIP、SOCKS5、HTTP、HTTPS 候选源中筛选。候选必须先实测，才能加入配置。</p></div><span id="catalogSyncPill" class="pill">等待候选源</span></div>
+
+      <div class="notice"><div class="notice-icon">ⓘ</div><div><strong>别混淆两类节点：</strong>“优选节点”是 Cloudflare 入口；“反代候选”决定最终出口。候选列表里的国家只是来源标注，只有显示“服务器实测通过”才算真实可用。</div></div>
+
+      <div id="sourceTabs" class="page-tabs" role="tablist" aria-label="节点扩充子页面"><button class="page-tab" role="tab" aria-selected="false" data-source-view="subscription">优选订阅配置</button><button class="page-tab active" role="tab" aria-selected="true" data-source-view="catalog">候选节点与国家</button><button class="page-tab" role="tab" aria-selected="false" data-source-view="selection">已验证自选</button></div>
+
+      <section class="panel section-space source-view" role="tabpanel" data-source-view-panel="subscription">
+        <div class="panel-header"><div><div class="panel-title">Cloudflare 优选订阅</div><div class="panel-sub">对应原后台“优选订阅生成”；保存前会二次确认并在 KV 留备份</div></div><span id="cfConfigPill" class="pill">正在读取</span></div>
+        <div class="config-grid">
+          <div class="form-field"><label for="subscriptionMode">优选订阅模式</label><select id="subscriptionMode" class="control"><option value="random">随机优选（小白模式）</option><option value="custom">自定义优选（高手模式）</option></select></div>
+          <div id="randomCountField" class="form-field"><label for="randomPreferredCount">随机优选数量（1–99）</label><input id="randomPreferredCount" class="control" type="number" min="1" max="99" value="50"></div>
+          <div id="specifiedPortField" class="form-field"><label for="specifiedPort">指定端口</label><input id="specifiedPort" class="control" type="number" min="-1" max="65535" value="-1"><small>-1 表示自动选择</small></div>
+          <div class="config-action"><div id="subscriptionCurrent" class="panel-sub">等待 Cloudflare 配置</div><button id="applySubscription" class="btn primary">保存订阅节点配置</button></div>
+          <div id="customNodesField" class="form-field form-wide" hidden><label for="customPreferredNodes">自定义优选地址 / API / 汇聚订阅</label><textarea id="customPreferredNodes" class="control code-area" rows="9" placeholder="每行一个 IP、域名、API 地址或订阅链接"></textarea><small>这是原后台的 ADD.txt。不会自动把未经验证的公共代理塞进这里。</small></div>
+        </div>
+      </section>
+
+      <section class="panel section-space source-view active" role="tabpanel" data-source-view-panel="catalog">
+        <div class="panel-header"><div><div class="panel-title">候选节点来源</div><div class="panel-sub">来源与高手模式一致；按协议、国家、状态和关键词筛选</div></div><button id="refreshCatalog" class="btn">刷新候选源</button></div>
+        <div id="candidateSourceCards" class="source-cards"><div class="empty">正在读取节点来源…</div></div>
+        <div class="quick-picker">
+          <div class="quick-picker-copy"><strong>快速创建代理池</strong><span>选择来源、可选国家和最终需要的可用路由数，再到“自选代理池”选择端口、Clash、V2RayN 输出。验证在后台运行。</span></div>
+          <div class="quick-picker-controls">
+            <select id="quickCandidateSource" class="control" aria-label="快捷自选来源"><option value="proxyip">ProxyIP</option><option value="socks5">SOCKS5</option><option value="http">HTTP</option><option value="https">HTTPS</option><option value="all">全部来源</option></select>
+            <select id="quickCandidateCountry" class="control" aria-label="快捷自选国家"><option value="">不限国家</option></select>
+            <input id="quickCandidateCount" class="control" type="number" min="1" max="100" value="50" aria-label="最终可用路由数量">
+            <button id="quickAutoSelect" class="btn primary">继续选择输出</button>
+          </div>
+        </div>
+        <details class="advanced-disclosure">
+          <summary><span><strong>逐个选择候选节点</strong><br>仅在需要查看来源明细或手动批量验证时使用</span></summary>
+          <div class="catalog-toolbar">
+            <select id="candidateSourceFilter" class="control"><option value="all">全部来源</option><option value="proxyip">ProxyIP</option><option value="socks5">SOCKS5</option><option value="http">HTTP</option><option value="https">HTTPS</option></select>
+            <select id="candidateCountryFilter" class="control"><option value="all">全部国家</option></select>
+            <select id="candidateStatusFilter" class="control"><option value="all">全部状态</option><option value="verified">实测通过</option><option value="failed">实测失败</option><option value="selected">已自选</option></select>
+            <input id="candidateSearch" class="control" type="search" placeholder="搜索 IP、城市、ASN 或运营商">
+          </div>
+          <div class="bulk-toolbar"><span id="candidateCheckedCount" class="bulk-meta">已选择 0 / 20 个候选</span><button id="bulkVerifyCandidates" class="btn" disabled>批量验证</button><button id="bulkVerifyAndSelect" class="btn primary" disabled>验证并加入自选</button></div>
+          <div class="table-scroll candidate-table-wrap"><table><thead><tr><th class="candidate-select-col"><input id="candidateSelectPage" class="candidate-checkbox" type="checkbox" aria-label="选择当前页候选"></th><th>来源</th><th>候选国家</th><th>节点地址</th><th>网络</th><th>服务器实测结果</th><th>操作</th></tr></thead><tbody id="candidateTable"><tr><td colspan="7" class="empty">正在加载候选节点…</td></tr></tbody></table></div>
+          <div class="table-footer"><span id="candidateCount">0 个候选节点</span><div class="pager"><button id="candidatePrev" aria-label="上一页">‹</button><span id="candidatePageText">1 / 1</span><button id="candidateNext" aria-label="下一页">›</button></div></div>
+        </details>
+      </section>
+
+      <section class="panel section-space source-view" role="tabpanel" data-source-view-panel="selection">
+        <div class="panel-header"><div><div class="panel-title">已验证自选节点</div><div class="panel-sub">ProxyIP 最多 8 个；SOCKS5 / HTTP / HTTPS 每次应用 1 个</div></div><span id="selectionCount" class="pill">0 个</span></div>
+        <div class="selection-layout"><div id="selectedCandidates" class="selected-list"><div class="empty">尚未选择候选节点</div></div><div class="reverse-form"><div class="form-field"><label for="reverseMode">准备应用的反代模式</label><select id="reverseMode" class="control"><option value="auto">恢复自动 ProxyIP（不使用左侧自选）</option><option value="proxyip">使用自选 ProxyIP</option><option value="socks5">使用自选 SOCKS5</option><option value="http">使用自选 HTTP</option><option value="https">使用自选 HTTPS</option></select></div><div id="reversePlan" class="reverse-state">等待选择节点</div><label class="check-row"><input id="reverseGlobal" type="checkbox"> 作为全局反代</label><button id="applyReverse" class="btn primary">应用反代配置</button><div id="reverseCurrent" class="reverse-state"><strong>当前已生效</strong><span>正在读取配置</span></div></div></div>
+        <a class="custom-pool-link" href="#custom" data-open-page="custom"><div><strong>这些节点同时组成独立自选代理池</strong><span>与 7890 主池隔离；进入自选代理池查看运行状态、国家出口、7891 端口和订阅导出。</span></div><b>打开自选池 →</b></a>
+      </section>
+    </section>
+
+    <section class="app-page" data-page="custom">
+      <div class="page-heading"><div><div class="eyebrow">Custom Pool</div><h1>创建代理池</h1><p>选择国家和节点数量，生成可直接导入 v2rayN、Clash 或由局域网端口自动轮换的一组代理节点。</p></div><span id="customUpdated" class="refresh-note">等待代理池状态</span></div>
+      <div class="notice"><div class="notice-icon">ⓘ</div><div><strong>数量口径：</strong>填写 100，就会以生成 100 个可在 v2rayN / Clash 中逐个切换的节点为目标；局域网端口使用同一批节点自动选择。上游出口只用于生成节点，不再作为页面主数量。</div></div>
+
+      <div id="customTabs" class="page-tabs" role="tablist" aria-label="代理池子页面"><button class="page-tab active" role="tab" aria-selected="true" data-custom-view="build">创建与分组</button><button class="page-tab" role="tab" aria-selected="false" data-custom-view="runtime">使用与状态</button></div>
+      <div class="custom-view active" role="tabpanel" data-custom-view-panel="build">
+
+      <section id="poolBuilderPanel" class="panel section-space">
+        <div class="panel-header"><div><div class="panel-title">创建或重建代理池</div><div class="panel-sub">可保存多个分组，同时只启用一个；切换时原子替换 7891，失败保留上一版</div></div><span id="poolBuildStatusPill" class="pill">空闲</span></div>
+        <div class="pool-builder-grid">
+          <div class="form-field"><label for="poolBuildName">代理池名称</label><input id="poolBuildName" class="control" maxlength="40" value="默认自选池"></div>
+          <div class="form-field"><label for="poolBuildSource">节点来源</label><select id="poolBuildSource" class="control"><option value="proxyip">ProxyIP</option><option value="socks5">SOCKS5</option><option value="http">HTTP</option><option value="https">HTTPS</option><option value="all">全部来源</option></select></div>
+          <div class="form-field"><label for="poolBuildCountry">出口国家（可选）</label><select id="poolBuildCountry" class="control"><option value="">不限国家 · 自动选优</option></select><small>不选择国家时按实测质量选取</small></div>
+          <div class="form-field"><label for="poolBuildTarget">节点数量</label><input id="poolBuildTarget" class="control" type="number" min="1" max="100" value="50"><small>导入 v2rayN / Clash 后显示的节点数，最多 100 个</small></div>
+          <div class="form-field pool-output-field"><label>使用方式（可多选）</label><div class="pool-output-options">
+            <label class="pool-output-choice"><input id="poolOutputPort" type="checkbox" checked><span><strong>局域网代理端口</strong><small>使用当前服务器地址和配置的代理端口</small></span></label>
+            <label class="pool-output-choice"><input id="poolOutputClash" type="checkbox" checked><span><strong>Clash 订阅</strong><small>生成可直接添加的 Clash YAML 地址</small></span></label>
+            <label class="pool-output-choice"><input id="poolOutputV2rayn" type="checkbox" checked><span><strong>V2RayN 订阅</strong><small>生成 Base64 订阅地址</small></span></label>
+          </div></div>
+          <div class="pool-build-action"><span class="panel-sub">提交后可以离开本页；构建状态会持久保存。</span><button id="startPoolBuild" class="btn primary">后台创建代理池</button></div>
+        </div>
+        <div id="poolBuildJob" class="pool-job"><div class="pool-job-head"><div id="poolBuildJobTitle" class="pool-job-title">当前没有构建任务</div><span id="poolBuildJobState" class="pill">空闲</span></div><div id="poolBuildJobCopy" class="pool-job-copy">可按需要配置后提交。</div><div class="pool-job-progress"><span id="poolBuildJobBar"></span></div><div id="poolBuildJobMeta" class="pool-job-meta"></div><div class="pool-job-actions"><button id="cancelPoolBuild" class="btn danger" hidden>取消验证</button><button id="retryPoolBuild" class="btn" hidden>按原配置重试</button></div></div>
+      </section>
+      <section class="panel section-space">
+        <div class="panel-header"><div><div class="panel-title">历史代理池分组</div><div class="panel-sub">每个分组保存实际节点快照；“立即使用”直接切换，“重新检测”才会重新生成节点</div></div><span id="poolProfileCount" class="pill">0 个</span></div>
+        <div id="poolProfileGrid" class="pool-profile-grid"><div class="empty">尚无历史分组；首次提交后会自动保存。</div></div>
+        <div class="table-footer"><span id="poolProfileSummary">保留最近 100 个命名分组</span><div class="pager"><button id="poolProfilePrev" aria-label="上一页历史分组">‹</button><span id="poolProfilePageText">1 / 1</span><button id="poolProfileNext" aria-label="下一页历史分组">›</button></div></div>
+      </section>
+      </div>
+
+      <div class="custom-view" role="tabpanel" data-custom-view-panel="runtime">
+      <section class="cards section-space" aria-label="自选池关键指标">
+        <article class="card"><div class="card-head"><span>运行状态</span><span class="card-icon">◉</span></div><div id="customServiceMetric" class="metric">—</div><div id="customServiceFoot" class="card-foot">等待 7891</div></article>
+        <article class="card"><div class="card-head"><span>节点总数</span><span class="card-icon">◇</span></div><div id="customMemberMetric" class="metric">—</div><div id="customMemberFoot" class="card-foot">v2rayN / Clash 可切换节点</div></article>
+        <article class="card"><div class="card-head"><span>当前可用</span><span class="card-icon">↔</span></div><div id="customRouteMetric" class="metric">—</div><div id="customRouteFoot" class="card-foot">Mihomo 实时检查</div></article>
+        <article class="card"><div class="card-head"><span>可用率</span><span class="card-icon">%</span></div><div id="customAvailabilityMetric" class="metric">—</div><div id="customAvailabilityFoot" class="card-foot">等待健康检查</div></article>
+        <article class="card"><div class="card-head"><span>当前出口</span><span class="card-icon">◎</span></div><div id="customEgressMetric" class="metric">—</div><div id="customEgressFoot" class="card-foot">等待 7891 出口采样</div></article>
+      </section>
+
+      <div class="custom-access-grid section-space">
+        <section class="panel">
+          <div class="panel-header"><div><div class="panel-title">访问与订阅</div><div class="panel-sub">局域网其他电脑可直接使用；地址根据当前访问主机自动生成</div></div><span class="pill">仅局域网</span></div>
+          <div class="endpoint-list">
+            <div class="endpoint-row" data-pool-output="port"><span>HTTP / SOCKS</span><code id="customProxyAddress">—</code><button class="mini-button" data-copy-target="customProxyAddress">复制</button></div>
+            <div class="endpoint-row" data-pool-output="clash"><span>Clash 订阅</span><a id="customClashAddress" href="/subscriptions/custom/clash" target="_blank" rel="noopener">—</a><button class="mini-button" data-copy-target="customClashAddress">复制</button></div>
+            <div class="endpoint-row" data-pool-output="v2rayn"><span>V2RayN 订阅</span><a id="customV2rayAddress" href="/subscriptions/custom/v2rayn" target="_blank" rel="noopener">—</a><button class="mini-button" data-copy-target="customV2rayAddress">复制</button></div>
+          </div>
+          <div class="custom-actions"><button class="btn" data-custom-action="restart">重启 7891</button><button class="btn danger" data-custom-action="stop">停止 7891</button></div>
+        </section>
+        <section class="panel">
+          <div class="panel-header"><div><div class="panel-title">节点国家与当前出口</div><div class="panel-sub">节点国家来自当前服务器实测；当前出口来自代理端口实际采样</div></div><span id="customCountryPill" class="pill">等待数据</span></div>
+          <div id="customCountryGrid" class="custom-country-grid"><div class="empty">尚无自选成员</div></div>
+        </section>
+      </div>
+
+      <details class="advanced-disclosure section-space">
+        <summary><span><strong>技术明细</strong><br>查看上游出口源和每一个可切换节点</span></summary>
+        <div class="advanced-stack">
+          <section class="panel">
+            <div class="panel-header"><div><div class="panel-title">上游出口源</div><div id="customMemberSummary" class="panel-sub">这些地址只用于生成下方可切换节点</div></div></div>
+            <div class="table-scroll"><table><thead><tr><th>来源</th><th>出口源地址</th><th>实测国家</th><th>验证延迟</th><th>最后验证</th></tr></thead><tbody id="customMemberTable"><tr><td colspan="5" class="empty">尚无可用出口源</td></tr></tbody></table></div>
+          </section>
+          <section class="panel">
+            <div class="panel-header table-toolbar"><div><div class="panel-title">可切换节点</div><div id="customRouteSummary" class="panel-sub">这里的每一行都会成为 v2rayN / Clash 中的一个节点</div></div></div>
+            <div class="table-scroll"><table><thead><tr><th>状态</th><th>节点名称</th><th>出口国家</th><th>出口源</th><th>延迟</th></tr></thead><tbody id="customRouteTable"><tr><td colspan="5" class="empty">尚无可切换节点</td></tr></tbody></table></div>
+            <div class="table-footer"><span id="customRouteCount">0 个节点</span><div class="pager"><button id="customRoutePrev" aria-label="上一页">‹</button><span id="customRoutePageText">1 / 1</span><button id="customRouteNext" aria-label="下一页">›</button></div></div>
+          </section>
+        </div>
+      </details>
+      </div>
+    </section>
+
+    <section class="app-page" data-page="operations">
+      <div class="page-heading"><div><div class="eyebrow">Settings &amp; Maintenance</div><h1>设置与维护</h1><p>查看最小配置要求，运行健康检查、刷新订阅或重启代理服务。所有变更操作都要求二次确认。</p></div></div>
+    <section class="panel section-space">
+      <div class="panel-header"><div><div class="panel-title">Cloudflare 部署最少需要填写什么</div><div class="panel-sub">本地端口、目录、Provider、日志和保留周期已有默认值；高级参数按需覆盖</div></div><span class="pill good">Cloudflare 仅 1 个必填值</span></div>
+      <div class="setup-summary">
+        <div class="setup-summary-item"><span>Cloudflare 必填</span><strong>ADMIN 管理密码</strong><span>通过安全提示输入，不写入仓库。</span></div>
+        <div class="setup-summary-item"><span>自动处理</span><strong>Workers KV 绑定</strong><span>Wrangler 首次部署时自动创建并绑定为 KV。</span></div>
+        <div class="setup-summary-item"><span>完全可选</span><strong>自定义域名 / 高级参数</strong><span>默认使用 workers.dev；局域网与探针按需启用。</span></div>
+      </div>
+    </section>
+    <section id="operations" class="panel actions-panel">
+      <div class="panel-header"><div><div class="panel-title">管理操作</div><div class="panel-sub">所有操作均需二次确认，且同一时间只执行一个</div></div><span class="pill">仅局域网</span></div>
+      <div class="action-grid">
+        <button class="action-button" data-action="healthcheck"><span class="action-symbol">⌁</span><span><span class="action-name">重新检查节点</span><span class="action-desc">立即触发 50 个节点的可用性与延迟检测</span></span></button>
+        <button class="action-button" data-action="refresh"><span class="action-symbol">↻</span><span><span class="action-name">刷新订阅</span><span class="action-desc">从当前 Cloudflare 订阅源拉取最新节点并更新 Provider</span></span></button>
+        <button class="action-button danger" data-action="restart"><span class="action-symbol">⏻</span><span><span class="action-name">重启代理服务</span><span class="action-desc">短暂中断 7890，重新启动独立代理计划任务</span></span></button>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-header"><div><div class="panel-title">最近管理记录</div><div class="panel-sub">记录触发时间、操作结果和局域网来源</div></div></div>
+      <div id="activityList" class="activity"><div class="empty">尚无人工管理操作</div></div>
+    </section>
+    </section>
+
+    <section class="app-page" data-page="nodes">
+      <div class="page-heading"><div><div class="eyebrow">Runtime Nodes</div><h1>当前运行节点</h1><p>统一展示 7890 主代理池和 7891 自选代理池；可按代理池、状态、国家和关键词筛选。</p></div></div>
+    <section class="panel" style="margin-bottom:20px">
+      <div class="panel-header"><div><div class="panel-title">当前反代链路</div><div class="panel-sub">反代地址位于 7890 入口节点之后，不会作为 Provider 节点混入下方表格</div></div><span id="runtimeReversePill" class="pill">正在读取</span></div>
+      <div class="runtime-route"><div class="runtime-route-item"><span>已生效模式</span><strong id="runtimeReverseMode">—</strong></div><div class="runtime-route-item"><span>反代地址</span><strong id="runtimeReverseAddresses">—</strong></div><div class="runtime-route-item"><span>应用范围</span><strong id="runtimeReverseGlobal">—</strong></div><p class="runtime-route-note">下方“节点明细”展示的是 Cloudflare 入口节点；这里展示最终反代出口。两者共同组成 7890 的完整代理链路。</p></div>
+    </section>
+    <section id="nodes" class="panel" style="margin-bottom:20px">
+      <div class="panel-header table-toolbar">
+        <div><div class="panel-title">节点明细</div><div id="nodeSummary" class="panel-sub">等待数据</div></div>
+        <div class="filters">
+          <button class="filter-button active" data-filter="all">全部</button>
+          <button class="filter-button" data-filter="alive">可用</button>
+          <button class="filter-button" data-filter="dead">不可用</button>
+          <button class="filter-button" data-filter="verified">已验证出口</button>
+          <button class="filter-button" data-filter="unverified">未验证</button>
+        </div>
+        <select id="poolFilter" class="toolbar-select" aria-label="按代理池筛选"><option value="all">全部代理池</option><option value="main">7890 主代理池</option><option value="custom">7891 自选代理池</option></select>
+        <select id="countryFilter" class="toolbar-select" aria-label="按国家筛选"><option value="all">全部国家</option></select>
+        <input id="nodeSearch" class="search" type="search" placeholder="搜索节点、国家、机房或出口 IP" autocomplete="off">
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>状态 / 代理池</th><th>节点名称</th><th>真实出口</th><th>Cloudflare 机房</th><th>节点延迟</th><th>出口链路</th><th>上传 / 下载</th><th>最后探测</th></tr></thead>
+          <tbody id="nodeTable"><tr><td colspan="8" class="empty">正在读取节点状态…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="table-footer"><span id="nodeCount">0 个节点</span><div class="pager"><button id="prevPage" aria-label="上一页">‹</button><span id="pageText">1 / 1</span><button id="nextPage" aria-label="下一页">›</button></div></div>
+    </section>
+    </section>
+
+    <footer><span>代理池控制台 · 仅允许局域网访问</span><span id="footerVersion">Proxy Pool —</span></footer>
+  </main>
+
+  <div id="modalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div id="operationModal" class="modal" aria-busy="false">
+      <div id="modalTitle" class="modal-head">确认操作</div>
+      <div class="modal-body"><div id="modalDescription"></div><div id="modalWarning" class="modal-warning"></div><div id="modalError" class="modal-error" hidden></div><div id="modalProgress" class="modal-progress" role="status" aria-live="polite"><div class="modal-progress-head"><strong id="modalProgressTitle">任务处理中</strong><span id="modalElapsed">00:00</span></div><div id="modalProgressTrack" class="modal-progress-track" role="progressbar" aria-label="任务进度"><div id="modalProgressBar" class="modal-progress-bar"></div></div><div id="modalProgressCopy" class="modal-progress-copy">正在提交任务，完成前操作已锁定。</div></div></div>
+      <div class="modal-actions"><button id="modalCancel" class="btn">取消</button><button id="modalConfirm" class="btn primary">确认执行</button></div>
+    </div>
+  </div>
+  <div id="toastWrap" class="toast-wrap" aria-live="polite"></div>
+
+  <script>
+    const state = {
+      status: null, history: [], countryPorts: null, countryPortSelection: [], countryPortsDirty: false,
+      range: '24h', poolFilter: 'all', nodeFilter: 'all', countryFilter: 'all', search: '', page: 1, pageSize: 15,
+      pendingAction: null, pendingPayload: null, pendingDetail: '', speedNode: '', busy: false,
+      operationStartedAt: 0, operationTimer: null, reverseModeTouched: false, reverseSuggested: false,
+      refreshing: false, lastStatusError: '',
+      cfConfig: null,
+      customPool: null, customPoolLoading: false, customView: 'build', customRoutePage: 1, customRoutePageSize: 20,
+      poolBuild: null, poolBuildLoading: false,
+      poolProfiles: [], activePoolProfileID: '', poolProfilesLoading: false, poolProfilePage: 1, poolProfilePageSize: 6,
+      catalog: { data: null, loading: false, source: 'all', country: 'all', status: 'all', search: '', page: 1, pageSize: 30, checked: new Map() }
+    };
+    const $ = (id) => document.getElementById(id);
+    const themeMedia = matchMedia('(prefers-color-scheme: dark)');
+
+    function applyTheme(value) {
+      const resolved = value === 'system' ? (themeMedia.matches ? 'dark' : 'light') : value;
+      document.documentElement.dataset.theme = resolved;
+      $('themeSelect').value = value;
+      requestAnimationFrame(drawChart);
+    }
+    const savedTheme = localStorage.getItem('proxy-monitor-theme') || 'system';
+    applyTheme(savedTheme);
+    $('themeSelect').addEventListener('change', (event) => { localStorage.setItem('proxy-monitor-theme', event.target.value); applyTheme(event.target.value); });
+    themeMedia.addEventListener('change', () => { if (($('themeSelect').value || 'system') === 'system') applyTheme('system'); });
+
+    const pageMeta = {
+      overview: '工作台 / 代理池仪表盘',
+      countries: '工作台 / 国家与端口',
+      sources: '高级 / 节点来源',
+      custom: '工作台 / 创建代理池',
+      nodes: '工作台 / 当前运行节点',
+      operations: '系统 / 设置与维护'
+    };
+    function setAppPage(rawPage, updateHash = false) {
+      const page = pageMeta[rawPage] ? rawPage : 'overview';
+      document.querySelectorAll('.app-page').forEach(section => section.classList.toggle('active', section.dataset.page === page));
+      document.querySelectorAll('.sidebar-link').forEach(link => link.classList.toggle('active', link.getAttribute('href') === `#${page}`));
+      $('pageTitle').textContent = pageMeta[page];
+      $('mobilePageSelect').value = page;
+      $('systemBannerAction').hidden = page === 'operations';
+      if (updateHash && location.hash !== `#${page}`) history.pushState(null, '', `#${page}`);
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      if (page === 'overview') requestAnimationFrame(drawChart);
+      if (['sources','nodes'].includes(page) && !state.cfConfig) loadCloudflareConfig();
+      if (page === 'sources') {
+        if (!state.catalog.data) loadCatalog();
+      }
+      if (page === 'custom' && !state.catalog.data) loadCatalog();
+      if (['countries','nodes','custom'].includes(page)) loadCustomPool();
+      if (page === 'custom') { loadPoolBuild(); loadPoolProfiles(); }
+    }
+    document.querySelectorAll('.sidebar-link[href^="#"]').forEach(link => link.addEventListener('click', event => {
+      event.preventDefault();
+      setAppPage(link.getAttribute('href').slice(1), true);
+    }));
+    document.querySelectorAll('[data-open-page]').forEach(link => link.addEventListener('click', event => {
+      event.preventDefault();
+      setAppPage(link.dataset.openPage, true);
+      if (link.dataset.customTarget) setCustomView(link.dataset.customTarget);
+    }));
+    $('mobilePageSelect').addEventListener('change', event => setAppPage(event.target.value, true));
+    addEventListener('hashchange', () => setAppPage(location.hash.slice(1)));
+    function setSourceView(view) {
+      const target = ['subscription','catalog','selection'].includes(view) ? view : 'catalog';
+      document.querySelectorAll('[data-source-view-panel]').forEach(panel => panel.classList.toggle('active', panel.dataset.sourceViewPanel === target));
+      document.querySelectorAll('[data-source-view]').forEach(button => {
+        const active = button.dataset.sourceView === target;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-selected', String(active));
+      });
+    }
+    document.querySelectorAll('[data-source-view]').forEach(button => button.addEventListener('click', () => setSourceView(button.dataset.sourceView)));
+    function setCustomView(view) {
+      const target = ['build','runtime'].includes(view) ? view : 'build';
+      state.customView = target;
+      document.querySelectorAll('[data-custom-view-panel]').forEach(panel => panel.classList.toggle('active', panel.dataset.customViewPanel === target));
+      document.querySelectorAll('[data-custom-view]').forEach(button => {
+        const active = button.dataset.customView === target;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-selected', String(active));
+      });
+    }
+    document.querySelectorAll('[data-custom-view]').forEach(button => button.addEventListener('click', () => setCustomView(button.dataset.customView)));
+
+    const fmtTime = (value, seconds = true) => {
+      if (!value) return '—';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return '—';
+      return new Intl.DateTimeFormat('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: seconds ? '2-digit' : undefined, hour12: false }).format(date);
+    };
+    const fmtBytes = (bytes) => {
+      if (!Number.isFinite(bytes) || bytes < 1) return '0 B';
+      const units = ['B','KB','MB','GB','TB'];
+      const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+      return `${(bytes / Math.pow(1024, index)).toFixed(index > 1 ? 1 : 0)} ${units[index]}`;
+    };
+    const taskStateLabel = (value) => ({
+      Running: '运行中', Starting: '启动中', Ready: '已就绪', Unavailable: '不可用',
+      ExportOnly: '仅订阅', NotInstalled: '未安装', 'Not responding': '未响应'
+    })[value] || value || '未知';
+    const readableControllerError = (value) => {
+      const text = String(value || '无法连接');
+      const endpoint = text.match(/dial tcp\s+([^\s:]+:\d+)/i)?.[1];
+      if (/actively refused|connection refused|connectex/i.test(text)) return `无法连接 ${endpoint || 'Mihomo Controller'}，请确认 Mihomo 已启动且 Controller 端口一致`;
+      if (/timeout|deadline exceeded/i.test(text)) return `连接 ${endpoint || 'Mihomo Controller'} 超时`;
+      return text.length > 220 ? `${text.slice(0, 217)}…` : text;
+    };
+    const escapeHTML = (value) => String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+
+    async function getJSON(url, options) {
+      const response = await fetch(url, { cache: 'no-store', ...options });
+      let data = {};
+      try { data = await response.json(); } catch (_) {}
+      if (!response.ok) throw new Error(data.message || data.error || `HTTP ${response.status}`);
+      return data;
+    }
+
+    async function runCatalogOperation(body) {
+      const response = await fetch('/api/catalog/action', {
+        cache: 'no-store',
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-ProxyTunnel-Action': 'confirmed', 'X-ProxyTunnel-Progress': 'stream' },
+        body: JSON.stringify(body)
+      });
+      if (!response.ok) {
+        let failure = {};
+        try { failure = await response.json(); } catch (_) {}
+        throw new Error(failure.message || failure.error || `HTTP ${response.status}`);
+      }
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/x-ndjson') || !response.body) return response.json();
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let result = null;
+      const consume = (line) => {
+        if (!line.trim()) return;
+        const event = JSON.parse(line);
+        if (event.type === 'progress') updateOperationProgress(event.data || event.progress || event);
+        if (event.type === 'result') result = event.data || event.result || {};
+        if (event.type === 'error') throw new Error(event.message || event.error || '任务执行失败');
+      };
+      while (true) {
+        const { value, done } = await reader.read();
+        buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+        const lines = buffer.split(/\r?\n/);
+        buffer = lines.pop() || '';
+        lines.forEach(consume);
+        if (done) break;
+      }
+      if (buffer.trim()) consume(buffer);
+      if (!result) throw new Error('任务结束但未返回最终结果');
+      return result;
+    }
+
+    function setMetric(id, value, tone = '') {
+      const el = $(id);
+      el.textContent = value;
+      el.className = `metric ${tone}`.trim();
+    }
+
+    function setSystemBanner(title = '', message = '') {
+      const visible = Boolean(title || message);
+      $('systemBanner').classList.toggle('show', visible);
+      $('systemBannerTitle').textContent = title || '服务连接异常';
+      $('systemBannerText').textContent = message || '';
+    }
+
+    function renderStatus(data) {
+      state.status = data;
+      state.lastStatusError = '';
+      const cfConfigured = Boolean(data.cloudflare_http_status || data.cloudflare?.service || data.cloudflare?.status || data.cloudflare?.build);
+      const ok = data.controller_reachable && (!cfConfigured || data.cloudflare_reachable);
+      $('liveDot').className = `live-dot ${ok ? 'ok' : 'bad'}`;
+      $('liveText').textContent = ok ? '系统正常' : '需要关注';
+      const problems = [];
+      if (!data.controller_reachable) problems.push(`Mihomo 控制端：${readableControllerError(data.controller_error)}`);
+      if (cfConfigured && !data.cloudflare_reachable) problems.push(`Cloudflare 健康检查：HTTP ${data.cloudflare_http_status || '无响应'}`);
+      setSystemBanner(problems.length ? '部分服务不可用' : '', problems.join('；'));
+      $('lastUpdated').textContent = `最后更新 ${fmtTime(data.generated_at)}`;
+      $('countryPageUpdated').textContent = `最后更新 ${fmtTime(data.generated_at)}`;
+      setMetric('serviceMetric', ok ? '正常' : '异常', ok ? 'good' : 'bad');
+      $('serviceFoot').textContent = `${data.provider_name || 'Provider'} · ${taskStateLabel(data.task_state)}`;
+      const egress = data.egress || {};
+      setMetric('egressMetric', egress.reachable ? (egress.country_code || '—') : '未知', egress.reachable ? 'good' : 'warn');
+      $('egressFoot').textContent = egress.reachable ? `${egress.country_name || egress.country_code} · ${egress.colo || '—'} · ${egress.latency_ms || 0} ms` : '7890 出口取样暂不可用';
+      setMetric('aliveMetric', `${data.alive ?? 0}`, data.dead > 0 ? 'warn' : 'good');
+      $('aliveFoot').textContent = `总计 ${data.runtime_nodes ?? 0} · 不可用 ${data.dead ?? 0}`;
+      const availability = Number(data.availability || 0);
+      setMetric('availabilityMetric', `${availability.toFixed(1)}%`, availability >= 90 ? 'good' : availability >= 70 ? 'warn' : 'bad');
+      const historyAvailability = state.history.length ? state.history.reduce((sum, point) => sum + Number(point.availability || 0), 0) / state.history.length : null;
+      $('availabilityFoot').textContent = historyAvailability === null ? `最近检测 ${fmtTime(data.latest_health_at)}` : `${state.range} 均值 ${historyAvailability.toFixed(1)}%`;
+      const p95 = data.p95_delay_ms || 0;
+      setMetric('latencyMetric', p95 ? `${p95} ms` : '—', p95 && p95 < 1000 ? 'good' : p95 < 2500 ? 'warn' : 'bad');
+      $('latencyFoot').textContent = `P50 ${data.p50_delay_ms || 0} ms`;
+      setMetric('connectionMetric', `${data.active_connections ?? 0}`);
+      $('connectionFoot').textContent = `累计 ↓ ${fmtBytes(data.download_total)} · ↑ ${fmtBytes(data.upload_total)}`;
+      setMetric('downloadMetric', `${fmtBytes(data.download_bps || 0)}/s`, (data.download_bps || 0) > 0 ? 'good' : '');
+      setMetric('uploadMetric', `${fmtBytes(data.upload_bps || 0)}/s`, (data.upload_bps || 0) > 0 ? 'good' : '');
+      $('downloadFoot').textContent = `累计 ${fmtBytes(data.download_total)}`;
+      $('uploadFoot').textContent = `累计 ${fmtBytes(data.upload_total)}`;
+      $('noticeIdentities').textContent = data.identity_count ?? 0;
+      $('noticeNodes').textContent = data.runtime_nodes ?? 0;
+      const probe = data.probe || {};
+      $('nodeSummary').textContent = `${data.alive ?? 0} 个 Provider 可用，${data.dead ?? 0} 个不可用；${probe.reachable ?? 0} 个已验证真实出口，${probe.stable ?? 0} 个通过连续验证`;
+      $('footerVersion').textContent = `Proxy Pool ${data.platform_version || '—'}`;
+      $('sideStatusPill').textContent = ok ? '运行中' : '异常';
+      $('sideStatusPill').className = `pill ${ok ? 'good' : 'bad'}`;
+      $('sideSummary').textContent = `${data.alive ?? 0}/${data.runtime_nodes ?? 0} 可用 · ${data.active_connections ?? 0} 个连接`;
+
+      $('cfPill').textContent = !cfConfigured ? '未配置（可选）' : data.cloudflare_reachable ? 'Cloudflare 正常' : 'Cloudflare 异常';
+      $('cfPill').className = `pill ${!cfConfigured ? '' : data.cloudflare_reachable ? 'good' : 'bad'}`;
+      $('cfBuild').textContent = data.cloudflare?.build || '—';
+      $('cfColo').textContent = `${data.cloudflare?.colo || '—'} · ${data.cloudflare_latency_ms || 0} ms`;
+      $('cfKV').textContent = cfConfigured ? `${data.cloudflare?.kv?.status || '—'} / ${data.cloudflare?.kv?.read_ms ?? '—'} ms` : '未配置健康检查 URL';
+      $('subscriptionHost').textContent = data.subscription_host || '—';
+      $('cfNodeGeneration').textContent = `${data.cloudflare?.local_node_generation ? '本地优选生成' : '外部生成器'} · 当前 ${data.declared_nodes || data.runtime_nodes || 0} 个入口`;
+      $('cfIdentity').textContent = `${data.identity_count ?? 0} 个（入口节点不等于账号）`;
+      $('groupInfo').textContent = `${data.group_name || '—'} / ${data.group_type || '—'} / ${data.group_candidate_count || 0} 节点`;
+      $('rotationInfo').textContent = data.cloudflare?.rotation?.strategy || '—';
+      $('concurrencyInfo').textContent = `${data.cloudflare?.rotation?.proxy_concurrency ?? '—'} 路反代拨号 · ${data.active_connections ?? 0} 个活动连接`;
+      $('providerUpdated').textContent = fmtTime(data.provider_updated_at);
+      $('taskState').innerHTML = `<span class="pill ${String(data.task_state).toLowerCase() === 'running' ? 'good' : 'warn'}">${escapeHTML(taskStateLabel(data.task_state))}</span>`;
+      $('probeButton').disabled = Boolean(probe.running) || !probe.enabled;
+      $('probeButton').textContent = probe.running ? '正在扫描真实出口…' : '重新扫描真实出口';
+      $('probeProgress').hidden = !probe.running;
+      const probeTotal = Number(probe.total || 0);
+      const probeCompleted = Number(probe.completed || 0);
+      $('probeProgressCount').textContent = `${probeCompleted} / ${probeTotal || '—'}`;
+      $('probeProgressText').textContent = probe.running ? `正在逐个验证 · 已找到 ${probe.reachable || 0} 个真实出口` : '';
+      $('probeProgressBar').style.width = `${probeTotal ? Math.min(100, probeCompleted / probeTotal * 100) : 0}%`;
+      renderCountries();
+      renderNodes();
+    }
+
+    function flagForCode(code) {
+      return /^[A-Z]{2}$/.test(code || '') && code !== 'UN' ? String.fromCodePoint(...code.split('').map(char => 127397 + char.charCodeAt(0))) : '◌';
+    }
+
+    function renderCountries() {
+      const data = state.status || {};
+      const egress = data.egress || {};
+      const probe = data.probe || {};
+      $('egressPill').textContent = probe.running ? `扫描中 ${probe.completed || 0}/${probe.total || 0}` : probe.generated_at ? `真实出口 ${probe.reachable || 0}/${probe.total || 0}` : '尚未真实扫描';
+      $('egressPill').className = `pill ${probe.running ? 'warn' : probe.reachable ? 'good' : 'warn'}`;
+      $('egressCode').textContent = egress.reachable ? `${flagForCode(egress.country_code)} ${egress.country_code}` : '—';
+      $('egressName').textContent = egress.reachable ? (egress.country_name || egress.country_code) : '等待 7890 取样';
+      $('egressMeta').textContent = egress.reachable ? `${egress.colo || '未知边缘'} · ${egress.latency_ms || 0} ms · ${fmtTime(egress.checked_at)}` : '失败时将在下一周期重试';
+      const countries = data.countries || [];
+      const stableByCountry = (data.nodes || []).reduce((map, node) => { if (node.country_stable && node.country_code) map[node.country_code] = (map[node.country_code] || 0) + 1; return map; }, {});
+      const mainCards = countries.map(country => `<article class="country-card"><div class="country-card-head"><span class="country-name">${flagForCode(country.code)} ${escapeHTML(country.code === 'UN' ? '未验证出口' : country.name)}</span><strong>${country.alive}/${country.total}</strong></div><div class="country-metrics">7890 主池 · Provider 可用率 ${Number(country.availability || 0).toFixed(1)}% · 连续验证 ${stableByCountry[country.code] || 0} 个${country.code === 'UN' ? ' · 不参与国家专用端口' : ''}</div><div class="country-bar"><i style="width:${Math.max(0, Math.min(100, Number(country.availability || 0)))}%"></i></div></article>`);
+      const customPool = state.customPool || {};
+      const customRoutes = customPool.routes || [];
+      const customCards = (customPool.countries || []).map(country => {
+        const routes = customRoutes.filter(route => (route.country_code || 'UN') === country.code);
+        const alive = routes.filter(route => route.alive).length;
+        const availability = routes.length ? alive / routes.length * 100 : 0;
+        return `<article class="country-card"><div class="country-card-head"><span class="country-name">${flagForCode(country.code)} ${escapeHTML(country.name || country.code)}</span><strong>${alive}/${routes.length}</strong></div><div class="country-metrics">7891 自选池 · ${routes.length} 个可切换节点 · ${country.members || 0} 个上游出口源</div><div class="country-bar"><i style="width:${Math.max(0, Math.min(100, availability))}%"></i></div></article>`;
+      });
+      $('countryGrid').innerHTML = [...mainCards, ...customCards].join('') || '<div class="empty">暂无真实出口探测数据</div>';
+      const filter = $('countryFilter');
+      const current = state.countryFilter;
+      const filterCountries = new Map();
+      countries.filter(country => country.code !== 'UN').forEach(country => filterCountries.set(country.code, { name: country.name, total: country.total || 0 }));
+      (customPool.countries || []).forEach(country => {
+        const currentCountry = filterCountries.get(country.code) || { name: country.name || country.code, total: 0 };
+        currentCountry.total += country.routes || 0;
+        filterCountries.set(country.code, currentCountry);
+      });
+      const options = [...filterCountries.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([code, country]) => `<option value="${escapeHTML(code)}">${flagForCode(code)} ${escapeHTML(country.name)} (${country.total})</option>`).join('');
+      filter.innerHTML = `<option value="all">全部国家</option><option value="UN">未验证出口</option>${options}`;
+      if ([...filter.options].some(option => option.value === current)) filter.value = current;
+      else { state.countryFilter = 'all'; filter.value = 'all'; }
+    }
+
+    function renderCountryPorts() {
+      const data = state.countryPorts || {};
+      const available = data.available || [];
+      const assignments = data.assignments || [];
+      const selected = new Set(state.countryPortSelection);
+      $('countryPortOptions').innerHTML = available.length ? available.map(country => `<label class="country-choice"><input type="checkbox" data-country-port="${escapeHTML(country.code)}" ${selected.has(country.code) ? 'checked' : ''}><span><strong>${flagForCode(country.code)} ${escapeHTML(country.name)} · ${escapeHTML(country.code)}</strong><small>${country.node_count || 0} 个连续验证节点</small></span></label>`).join('') : '<div class="empty">暂无连续两次验证一致的国家，请先完成两轮真实出口扫描</div>';
+      $('countryPortList').innerHTML = assignments.length ? assignments.map(item => {
+        const address = `http://${location.hostname}:${item.port}`;
+        return `<div class="country-port-row"><div><strong>${flagForCode(item.code)} ${escapeHTML(item.name)}</strong><div class="node-meta">${item.node_count || 0} 个当前稳定节点</div></div><div class="proxy-address">${escapeHTML(address)}</div></div>`;
+      }).join('') : '<div class="empty">7890 主池尚未开放国家专用端口</div>';
+      const customPool = state.customPool || {};
+      const customCountries = customPool.countries || [];
+      if ((customPool.routes || []).length) {
+        const host = location.hostname.includes(':') ? `[${location.hostname}]` : location.hostname;
+        const countryLabel = customCountries.length === 1 ? `${flagForCode(customCountries[0].code)} ${escapeHTML(customCountries[0].name || customCountries[0].code)}` : `${customCountries.length} 国混合`;
+        const outputs = new Set(customPool.outputs || ['port','clash','v2rayn']);
+        const clash = customPool.exports?.clash ? `${location.origin}${customPool.exports.clash}` : '';
+        const v2rayn = customPool.exports?.v2rayn ? `${location.origin}${customPool.exports.v2rayn}` : '';
+        const links = [
+          outputs.has('clash') && clash ? `<a class="mini-button" href="${escapeHTML(clash)}" target="_blank" rel="noopener">Clash 订阅</a>` : '',
+          outputs.has('v2rayn') && v2rayn ? `<a class="mini-button" href="${escapeHTML(v2rayn)}" target="_blank" rel="noopener">V2RayN 订阅</a>` : ''
+        ].filter(Boolean).join('');
+        const address = outputs.has('port') ? `<div class="proxy-address">http://${escapeHTML(host)}:${customPool.proxy_port || 7891}</div>` : '<div class="node-meta">当前池仅导出订阅，未开放局域网端口</div>';
+        $('countryPortList').insertAdjacentHTML('beforeend', `<div class="country-port-row"><div><strong>${countryLabel} · ${escapeHTML(customPool.pool_name || '自选池')}</strong><div class="node-meta">${customPool.alive || 0}/${customPool.route_count || (customPool.routes || []).length} 条路由可用；目标 ${customPool.target_routes || '—'} 条</div></div><div>${address}${links ? `<div class="candidate-actions" style="margin-top:8px">${links}</div>` : ''}</div></div>`);
+      }
+      $('countryPortUpdated').textContent = data.updated_at ? `上次应用 ${fmtTime(data.updated_at)} · 端口基准 ${data.port_base || '—'}` : `端口基准 ${data.port_base || '—'} · 尚未应用`;
+      const canApply = Boolean(data.configured) && (available.length > 0 || assignments.length > 0);
+      $('applyCountryPorts').disabled = state.busy || !canApply;
+      $('applyCountryPorts').textContent = selected.size ? `应用 ${selected.size} 个国家端口` : assignments.length ? '关闭全部国家端口' : '应用端口配置';
+      document.querySelectorAll('[data-country-port]').forEach(input => input.addEventListener('change', () => {
+        state.countryPortSelection = [...document.querySelectorAll('[data-country-port]:checked')].map(item => item.dataset.countryPort).sort();
+        state.countryPortsDirty = true;
+        renderCountryPorts();
+      }));
+    }
+
+    async function loadCountryPorts(forceSelection = false) {
+      try {
+        const data = await getJSON('/api/country-ports');
+        state.countryPorts = data;
+        if (forceSelection || !state.countryPortsDirty) state.countryPortSelection = (data.assignments || []).map(item => item.code).sort();
+        renderCountryPorts();
+      } catch (error) {
+        $('countryPortOptions').innerHTML = `<div class="empty">国家端口状态加载失败：${escapeHTML(error.message)}</div>`;
+        $('applyCountryPorts').disabled = true;
+      }
+    }
+
+    async function loadStatus() {
+      try {
+        renderStatus(await getJSON('/api/status'));
+      } catch (error) {
+        const message = error.message || '未知连接错误';
+        $('liveDot').className = 'live-dot bad';
+        $('liveText').textContent = '监控断开';
+        setSystemBanner('监控后端连接失败', message);
+        if (state.lastStatusError !== message) showToast(`状态加载失败：${message}`, true);
+        state.lastStatusError = message;
+      }
+    }
+
+    async function refreshAllData() {
+      if (state.refreshing) return;
+      state.refreshing = true;
+      const button = $('refreshAllButton');
+      button.disabled = true;
+      button.classList.add('loading');
+      button.textContent = '刷新中';
+      try {
+        await Promise.allSettled([
+          loadStatus(), loadHistory(), loadCountryPorts(), loadCustomPool(),
+          loadPoolBuild(), loadPoolProfiles(), loadActions(), loadCloudflareConfig()
+        ]);
+        showToast('刷新请求已完成');
+      } finally {
+        state.refreshing = false;
+        button.disabled = false;
+        button.classList.remove('loading');
+        button.textContent = '立即刷新';
+      }
+    }
+
+    $('refreshAllButton').addEventListener('click', refreshAllData);
+    $('systemBannerAction').addEventListener('click', () => setAppPage('operations', true));
+
+    async function statusLoop() {
+      await loadStatus();
+      setTimeout(statusLoop, state.status?.probe?.running ? 2500 : 15000);
+    }
+
+    async function loadHistory() {
+      try {
+        const data = await getJSON(`/api/history?range=${state.range}`);
+        state.history = data.points || [];
+        $('historyCount').textContent = state.history.length ? `${state.history.length} 个采样点 · 保留 ${data.retention_days} 天` : '暂无历史点';
+        if (state.status && state.history.length) {
+          const average = state.history.reduce((sum, point) => sum + Number(point.availability || 0), 0) / state.history.length;
+          $('availabilityFoot').textContent = `${state.range} 稳定性均值 ${average.toFixed(1)}%`;
+        }
+        drawChart();
+      } catch (error) {
+        state.history = [];
+        drawChart();
+      }
+    }
+
+    $('rangeTabs').addEventListener('click', (event) => {
+      const button = event.target.closest('[data-range]');
+      if (!button) return;
+      state.range = button.dataset.range;
+      document.querySelectorAll('[data-range]').forEach(el => el.classList.toggle('active', el === button));
+      loadHistory();
+    });
+
+    function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+    function drawChart() {
+      const canvas = $('historyChart');
+      if (!canvas) return;
+      const wrap = $('chartWrap');
+      const width = Math.max(300, wrap.clientWidth - 36);
+      const height = Math.max(220, wrap.clientHeight - 28);
+      const ratio = window.devicePixelRatio || 1;
+      canvas.width = width * ratio;
+      canvas.height = height * ratio;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      const ctx = canvas.getContext('2d');
+      ctx.scale(ratio, ratio);
+      ctx.clearRect(0, 0, width, height);
+      const points = state.history;
+      const pad = { left: 38, right: 44, top: 18, bottom: 31 };
+      const plotW = width - pad.left - pad.right;
+      const plotH = height - pad.top - pad.bottom;
+      ctx.font = '11px Segoe UI, Microsoft YaHei UI, sans-serif';
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = css('--line');
+      ctx.fillStyle = css('--muted');
+      for (let i = 0; i <= 4; i++) {
+        const y = pad.top + plotH * i / 4;
+        ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(width - pad.right, y); ctx.stroke();
+      }
+      if (!points.length) {
+        ctx.textAlign = 'center';
+        ctx.fillText('开始采样后，这里会显示最多 30 天的可用性趋势', width / 2, height / 2);
+        return;
+      }
+      const maxNodes = Math.max(1, ...points.map(p => p.total || p.alive || 0));
+      const maxDelay = Math.max(100, ...points.map(p => p.p95_delay_ms || 0));
+      const xAt = i => pad.left + (points.length === 1 ? plotW / 2 : plotW * i / (points.length - 1));
+      const yNode = v => pad.top + plotH - (v / maxNodes) * plotH;
+      const yDelay = v => pad.top + plotH - (v / maxDelay) * plotH;
+      ctx.textAlign = 'right'; ctx.fillText(String(maxNodes), pad.left - 7, pad.top + 4); ctx.fillText('0', pad.left - 7, pad.top + plotH + 4);
+      ctx.textAlign = 'left'; ctx.fillText(`${maxDelay}ms`, width - pad.right + 7, pad.top + 4); ctx.fillText('0', width - pad.right + 7, pad.top + plotH + 4);
+      const first = new Date(points[0].time), last = new Date(points[points.length - 1].time);
+      ctx.textAlign = 'left'; ctx.fillText(fmtTime(first, false), pad.left, height - 7);
+      ctx.textAlign = 'right'; ctx.fillText(fmtTime(last, false), width - pad.right, height - 7);
+
+      function line(key, y, color) {
+        ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.beginPath();
+        points.forEach((point, index) => { const px = xAt(index), py = y(point[key] || 0); index ? ctx.lineTo(px, py) : ctx.moveTo(px, py); });
+        ctx.stroke();
+      }
+      line('alive', yNode, css('--good'));
+      line('p95_delay_ms', yDelay, css('--blue'));
+      canvas._chart = { points, pad, plotW, plotH, xAt, yNode, yDelay, width, height };
+    }
+
+    const canvas = $('historyChart');
+    canvas.addEventListener('mousemove', (event) => {
+      const chart = canvas._chart;
+      if (!chart || !chart.points.length) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const relative = Math.max(0, Math.min(1, (x - chart.pad.left) / chart.plotW));
+      const index = Math.round(relative * Math.max(0, chart.points.length - 1));
+      const point = chart.points[index];
+      const tooltip = $('chartTooltip');
+      tooltip.innerHTML = `<strong>${escapeHTML(fmtTime(point.time))}</strong><div class="tip-row"><span>健康节点</span><b>${point.alive}/${point.total}</b></div><div class="tip-row"><span>可用率</span><b>${Number(point.availability || 0).toFixed(1)}%</b></div><div class="tip-row"><span>P95 延迟</span><b>${point.p95_delay_ms || 0} ms</b></div><div class="tip-row"><span>当前连接</span><b>${point.active_connections || 0}</b></div>`;
+      tooltip.style.left = `${chart.xAt(index) + 18}px`;
+      tooltip.style.top = `${Math.min(chart.yNode(point.alive), chart.yDelay(point.p95_delay_ms)) + 12}px`;
+      tooltip.classList.add('show');
+    });
+    canvas.addEventListener('mouseleave', () => $('chartTooltip').classList.remove('show'));
+    addEventListener('resize', () => requestAnimationFrame(drawChart));
+
+    function runtimeNodes() {
+      const main = (state.status?.nodes || []).map(node => ({ ...node, pool: 'main', pool_name: '7890 主池' }));
+      const customPool = state.customPool || {};
+      const custom = (customPool.routes || []).map((route, index) => ({
+        name: route.name || `自选路由 ${index + 1}`,
+        type: `自选路由 · ${String(route.source || '').toUpperCase()}`,
+        pool: 'custom',
+        pool_name: '7891 自选池',
+        alive: Boolean(route.alive),
+        country_code: route.country_code || 'UN',
+        country_name: route.country_name || route.country_code || '未验证',
+        country_stable: Boolean(route.country_code && route.country_code !== 'UN'),
+        country_samples: 2,
+        egress_reachable: Boolean(route.country_code && route.country_code !== 'UN'),
+        egress_ip: route.candidate_address || '',
+        egress_colo: '',
+        delay_ms: route.delay_ms || route.quality_delay_ms || 0,
+        egress_latency_ms: route.quality_delay_ms || route.delay_ms || 0,
+        last_check_at: customPool.quality?.checked_at || customPool.updated_at || '',
+        candidate_address: route.candidate_address || '',
+        source: route.source || ''
+      }));
+      return [...main, ...custom];
+    }
+
+    function filteredNodes() {
+      const nodes = runtimeNodes();
+      const search = state.search.toLowerCase();
+      return nodes.filter(node => {
+        const verified = Boolean(node.egress_reachable && node.country_code && node.country_code !== 'UN');
+        const poolMatch = state.poolFilter === 'all' || node.pool === state.poolFilter;
+        const statusMatch = state.nodeFilter === 'all' ||
+          (state.nodeFilter === 'alive' && node.alive) ||
+          (state.nodeFilter === 'dead' && !node.alive) ||
+          (state.nodeFilter === 'verified' && verified) ||
+          (state.nodeFilter === 'unverified' && !verified);
+        const countryMatch = state.countryFilter === 'all' || (node.country_code || 'UN') === state.countryFilter;
+        const searchMatch = !search || `${node.name} ${node.pool_name || ''} ${node.source || ''} ${node.country_code || ''} ${node.country_name || ''} ${node.egress_colo || ''} ${node.egress_ip || ''}`.toLowerCase().includes(search);
+        return poolMatch && statusMatch && countryMatch && searchMatch;
+      });
+    }
+    function renderNodes() {
+      const nodes = filteredNodes();
+      const allNodes = runtimeNodes();
+      const mainCount = allNodes.filter(node => node.pool === 'main').length;
+      const customCount = allNodes.filter(node => node.pool === 'custom').length;
+      $('nodeSummary').textContent = `7890 主池 ${mainCount} 个 · 7891 自选池 ${customCount} 个节点；当前筛选 ${nodes.length} 个`;
+      const pages = Math.max(1, Math.ceil(nodes.length / state.pageSize));
+      state.page = Math.min(state.page, pages);
+      const start = (state.page - 1) * state.pageSize;
+      const shown = nodes.slice(start, start + state.pageSize);
+      $('nodeTable').innerHTML = shown.length ? shown.map(node => {
+        const verified = Boolean(node.egress_reachable && node.country_code && node.country_code !== 'UN');
+        const countryName = verified ? (node.country_name || node.country_code) : '未验证';
+        const stable = Boolean(node.country_stable);
+        const speed = node.pool === 'main' && node.speed_checked_at ? `<div>↓ ${Number(node.download_mbps || 0).toFixed(2)} Mbps</div><div>↑ ${Number(node.upload_mbps || 0).toFixed(2)} Mbps</div>` : `<div class="node-meta">${node.pool === 'custom' ? '自选池暂未测速' : '尚未测速'}</div>`;
+        const speedButton = node.pool === 'main' && verified && node.alive ? `<button class="mini-button" data-speed-node="${escapeHTML(node.name)}">测速</button>` : '';
+        return `<tr><td><span class="pill ${node.alive ? 'good' : 'bad'}">${node.alive ? '可用' : '不可用'}</span><div class="node-meta">${escapeHTML(node.pool_name || '7890 主池')}</div></td><td><div class="node-name" title="${escapeHTML(node.name)}">${escapeHTML(node.name)}</div><div class="node-meta">${escapeHTML(node.type || '—')}</div></td><td><div class="node-country">${flagForCode(node.country_code)} ${escapeHTML(countryName)}${verified ? `<span class="pill ${stable ? 'good' : 'warn'}">${node.pool === 'custom' ? '自选池双检' : stable ? `连续 ${node.country_samples || 2} 次` : '单次验证'}</span>` : ''}</div><div class="node-meta">${escapeHTML(node.egress_ip || node.egress_probe_error || '尚未探测')}</div></td><td>${escapeHTML(node.pool === 'custom' ? '自选出口' : (node.egress_colo || '—'))}</td><td>${node.delay_ms ? `${node.delay_ms} ms` : '—'}</td><td>${node.egress_latency_ms ? `${node.egress_latency_ms} ms` : '—'}</td><td>${speed}${speedButton}</td><td>${fmtTime(node.egress_checked_at || node.last_check_at)}</td></tr>`;
+      }).join('') : '<tr><td colspan="8" class="empty">没有符合条件的节点</td></tr>';
+      $('nodeCount').textContent = `${nodes.length} 个节点${nodes.length ? ` · 显示 ${start + 1}-${Math.min(start + state.pageSize, nodes.length)}` : ''}`;
+      $('pageText').textContent = `${state.page} / ${pages}`;
+      $('prevPage').disabled = state.page <= 1;
+      $('nextPage').disabled = state.page >= pages;
+      document.querySelectorAll('[data-speed-node]').forEach(button => button.addEventListener('click', () => {
+        state.speedNode = button.dataset.speedNode;
+        openModal('speed_test');
+      }));
+    }
+    document.querySelectorAll('[data-filter]').forEach(button => button.addEventListener('click', () => {
+      state.nodeFilter = button.dataset.filter; state.page = 1;
+      document.querySelectorAll('[data-filter]').forEach(el => el.classList.toggle('active', el === button));
+      renderNodes();
+    }));
+    $('nodeSearch').addEventListener('input', event => { state.search = event.target.value.trim(); state.page = 1; renderNodes(); });
+    $('poolFilter').addEventListener('change', event => { state.poolFilter = event.target.value; state.page = 1; renderNodes(); });
+    $('countryFilter').addEventListener('change', event => { state.countryFilter = event.target.value; state.page = 1; renderNodes(); });
+    $('prevPage').addEventListener('click', () => { state.page--; renderNodes(); });
+    $('nextPage').addEventListener('click', () => { state.page++; renderNodes(); });
+
+    function renderCustomPool(data) {
+      state.customPool = data;
+      const running = Boolean(data.running);
+      const members = data.members || [];
+      const routes = data.routes || [];
+      const hasRoutes = routes.length > 0;
+      const countries = data.countries || [];
+      const egress = data.egress || {};
+      const quality = data.quality || {};
+      const outputs = new Set(data.outputs || (members.length ? ['port','clash','v2rayn'] : []));
+      const portEnabled = outputs.has('port');
+      const exportOnly = members.length > 0 && !portEnabled;
+      const poolName = data.pool_name || '默认自选池';
+      const targetRoutes = Number(data.target_routes || routes.length || 0);
+      $('customUpdated').textContent = data.updated_at ? `${poolName} · ${fmtTime(data.updated_at)}` : '尚未生成自选池';
+      setMetric('customServiceMetric', running ? '运行中' : exportOnly ? '仅订阅' : (members.length ? '已停止' : '空闲'), running || exportOnly ? 'good' : (members.length ? 'bad' : ''));
+      $('customServiceFoot').textContent = portEnabled ? `${taskStateLabel(data.task_state)} · 端口 ${data.proxy_port || 7891}` : `${taskStateLabel(data.task_state || 'ExportOnly')} · 未开放端口`;
+      setMetric('customMemberMetric', String(data.node_count || data.route_count || routes.length || 0), routes.length ? 'good' : '');
+      $('customMemberFoot').textContent = routes.length ? `目标 ${targetRoutes} 个 · ${escapeHTML(poolName)}` : '请在上方创建代理池';
+      setMetric('customRouteMetric', `${Number(data.alive || 0)} / ${routes.length}`, routes.length ? 'good' : '');
+      $('customRouteFoot').textContent = !hasRoutes ? '创建后显示可用节点' : portEnabled ? '局域网端口与订阅共用同一批节点' : '订阅中的独立可切换节点';
+      const availability = exportOnly && routes.length ? 100 : Number(data.availability || 0);
+      setMetric('customAvailabilityMetric', `${availability.toFixed(1)}%`, availability >= 90 ? 'good' : routes.length ? 'warn' : '');
+      $('customAvailabilityFoot').textContent = routes.length ? (exportOnly ? `${routes.length} 个订阅节点已验证` : `当前可用 ${Number(data.alive || 0)}/${routes.length} 个节点`) : '尚无节点';
+      setMetric('customEgressMetric', egress.reachable ? (egress.country_code || '—') : '未知', egress.reachable ? 'good' : members.length ? 'warn' : '');
+      $('customEgressFoot').textContent = egress.reachable ? `${egress.country_name || egress.country_code} · ${egress.ip || '—'} · ${egress.colo || '—'} · ${egress.latency_ms || 0} ms` : hasRoutes ? '7891 尚未取得实际出口' : '创建后采样真实出口';
+
+      const host = location.hostname.includes(':') ? `[${location.hostname}]` : location.hostname;
+      $('customProxyAddress').textContent = hasRoutes && portEnabled ? `http://${host}:${data.proxy_port || 7891}` : hasRoutes ? '当前未启用端口输出' : '创建完成后显示';
+      const clashAddress = hasRoutes && data.exports?.clash ? `${location.origin}${data.exports.clash}` : hasRoutes ? '当前未启用 Clash 输出' : '创建完成后显示';
+      const v2rayAddress = hasRoutes && data.exports?.v2rayn ? `${location.origin}${data.exports.v2rayn}` : hasRoutes ? '当前未启用 V2RayN 输出' : '创建完成后显示';
+      $('customClashAddress').textContent = clashAddress;
+      $('customClashAddress').href = hasRoutes && data.exports?.clash ? clashAddress : '#';
+      $('customV2rayAddress').textContent = v2rayAddress;
+      $('customV2rayAddress').href = hasRoutes && data.exports?.v2rayn ? v2rayAddress : '#';
+      for (const link of [$('customClashAddress'), $('customV2rayAddress')]) {
+        link.setAttribute('aria-disabled', String(!hasRoutes));
+        link.tabIndex = hasRoutes ? 0 : -1;
+      }
+      document.querySelectorAll('[data-copy-target]').forEach(button => { button.disabled = !hasRoutes; });
+      document.querySelectorAll('[data-pool-output]').forEach(row => { row.hidden = hasRoutes && !outputs.has(row.dataset.poolOutput); });
+      document.querySelectorAll('[data-custom-action]').forEach(button => {
+        if (button.dataset.customAction === 'restart') button.hidden = !hasRoutes || !portEnabled;
+        if (button.dataset.customAction === 'stop') button.hidden = !hasRoutes || !portEnabled;
+      });
+
+      $('customCountryPill').className = `pill ${countries.length ? 'good' : ''}`;
+      $('customCountryPill').textContent = countries.length ? `${countries.length} 个国家` : '暂无节点';
+      $('customCountryGrid').innerHTML = countries.length ? countries.map(country => `<div class="custom-country-card"><span>${flagForCode(country.code)} ${escapeHTML(country.name || country.code)}</span><strong>${country.routes || 0} 个可切换节点</strong><span>${country.members || 0} 个上游出口源</span></div>`).join('') : '<div class="empty">尚无已验证节点</div>';
+
+      $('customMemberSummary').textContent = members.length ? `${members.length} 个内部出口源 · 用于生成 ${routes.length} 个节点 · 输出 ${[...outputs].map(item => ({port:'端口',clash:'Clash',v2rayn:'V2RayN'})[item] || item).join(' / ')}` : '尚无可用出口源';
+      $('customMemberTable').innerHTML = members.length ? members.map(member => `<tr><td><span class="pill good">${escapeHTML(String(member.source || '').toUpperCase())}</span></td><td><span class="mono">${escapeHTML(member.address || '')}</span></td><td>${flagForCode(member.country_code)} ${escapeHTML(member.country_name || member.country_code || '—')}</td><td>${member.latency_ms || 0} ms</td><td>${fmtTime(member.checked_at)}</td></tr>`).join('') : '<tr><td colspan="5" class="empty">尚无可用出口源</td></tr>';
+
+      const pages = Math.max(1, Math.ceil(routes.length / state.customRoutePageSize));
+      state.customRoutePage = Math.max(1, Math.min(state.customRoutePage, pages));
+      const start = (state.customRoutePage - 1) * state.customRoutePageSize;
+      const shown = routes.slice(start, start + state.customRoutePageSize);
+      $('customRouteSummary').textContent = running ? `7891 在线 · ${data.alive || 0}/${routes.length} 个节点当前可用${quality.checked_at ? ` · 构建验证 ${fmtTime(quality.checked_at)}` : ''}` : exportOnly ? `订阅已生成 · ${routes.length}/${targetRoutes || routes.length} 个可切换节点` : (members.length ? '7891 当前未运行，订阅节点仍保留' : '等待创建节点');
+      $('customRouteTable').innerHTML = shown.length ? shown.map(route => {
+        const routeGood = route.alive || (exportOnly && Number(route.quality_delay_ms || 0) > 0);
+        const routeLabel = route.alive ? '可用' : exportOnly && routeGood ? '双检通过' : '不可用';
+        return `<tr><td><span class="pill ${routeGood ? 'good' : 'bad'}">${routeLabel}</span></td><td><span class="mono">${escapeHTML(route.name || '')}</span><div class="node-meta">${escapeHTML(String(route.source || '').toUpperCase())}</div></td><td>${flagForCode(route.country_code)} ${escapeHTML(route.country_name || route.country_code || '—')}</td><td><span class="mono">${escapeHTML(route.candidate_address || '')}</span></td><td>${route.delay_ms || route.quality_delay_ms ? `${route.delay_ms || route.quality_delay_ms} ms` : '等待检测'}</td></tr>`;
+      }).join('') : '<tr><td colspan="5" class="empty">尚无可切换节点</td></tr>';
+      $('customRouteCount').textContent = `${routes.length} 个节点${routes.length ? ` · 显示 ${start + 1}-${Math.min(start + state.customRoutePageSize, routes.length)}` : ''}`;
+      $('customRoutePageText').textContent = `${state.customRoutePage} / ${pages}`;
+      $('customRoutePrev').disabled = state.customRoutePage <= 1;
+      $('customRouteNext').disabled = state.customRoutePage >= pages;
+      renderCountries();
+      renderCountryPorts();
+      renderNodes();
+    }
+
+    async function loadCustomPool() {
+      if (state.customPoolLoading) return;
+      state.customPoolLoading = true;
+      try {
+        renderCustomPool(await getJSON('/api/custom-pool'));
+      } catch (error) {
+        setMetric('customServiceMetric', '不可用', 'bad');
+        $('customServiceFoot').textContent = error.message;
+      } finally {
+        state.customPoolLoading = false;
+      }
+    }
+
+    const poolBuildActiveStates = new Set(['queued','loading','verifying','building','cancelling']);
+    const poolBuildLabels = {
+      idle: '空闲', queued: '排队中', loading: '准备出口源', verifying: '验证出口源', building: '生成节点',
+      cancelling: '取消中', ready: '已完成', partial: '部分完成', failed: '失败', cancelled: '已取消', interrupted: '已中断'
+    };
+    const poolOutputLabels = { port: '局域网端口', clash: 'Clash', v2rayn: 'V2RayN' };
+
+    function selectedPoolOutputs() {
+      return [
+        $('poolOutputPort').checked ? 'port' : '',
+        $('poolOutputClash').checked ? 'clash' : '',
+        $('poolOutputV2rayn').checked ? 'v2rayn' : ''
+      ].filter(Boolean);
+    }
+
+    function poolBuildPayload(spec = null) {
+      if (spec) return { action: 'build', name: spec.name, source: spec.source, country: spec.country || '', target_routes: Number(spec.target_routes), outputs: [...(spec.outputs || [])] };
+      return {
+        action: 'build', name: $('poolBuildName').value.trim(), source: $('poolBuildSource').value,
+        country: $('poolBuildCountry').value, target_routes: Number($('poolBuildTarget').value), outputs: selectedPoolOutputs()
+      };
+    }
+
+    function renderPoolBuild(data) {
+      state.poolBuild = data;
+      const job = data?.job || { status: 'idle', spec: {} };
+      const spec = job.spec || {};
+      const status = job.status || 'idle';
+      const active = poolBuildActiveStates.has(status);
+      const good = status === 'ready';
+      const warn = active || status === 'partial';
+      const bad = ['failed','interrupted'].includes(status);
+      const label = poolBuildLabels[status] || status;
+      $('poolBuildStatusPill').textContent = label;
+      $('poolBuildStatusPill').className = `pill ${good ? 'good' : bad ? 'bad' : warn ? 'warn' : ''}`;
+      $('poolBuildJobState').textContent = label;
+      $('poolBuildJobState').className = `pill ${good ? 'good' : bad ? 'bad' : warn ? 'warn' : ''}`;
+      $('poolBuildJobTitle').textContent = status === 'idle' ? '当前没有构建任务' : `${spec.name || '默认自选池'} · ${label}`;
+      $('poolBuildJobCopy').textContent = job.error || job.message || '任务状态已保存，可离开本页。';
+
+      let percent = 0;
+      if (status === 'queued') percent = 4;
+      else if (status === 'loading') percent = 10;
+      else if (status === 'verifying' || status === 'cancelling') percent = job.attempt_limit ? Math.min(82, 12 + Math.round(Number(job.attempted || 0) / Number(job.attempt_limit) * 70)) : 12;
+      else if (status === 'building') {
+        const qualityTotal = Number(job.quality_total || 0);
+        const qualityCompleted = Number(job.quality_completed || 0);
+        const qualityRatio = qualityTotal > 0 ? Math.min(1, qualityCompleted / qualityTotal) : 0;
+        percent = job.quality_phase === 'round1' ? 18 + Math.round(qualityRatio * 34)
+          : job.quality_phase === 'round2' ? 55 + Math.round(qualityRatio * 35)
+          : job.quality_phase === 'publishing' ? 95 : 16;
+      }
+      else if (!['idle'].includes(status)) percent = 100;
+      $('poolBuildJobBar').style.width = `${percent}%`;
+
+      const country = spec.country ? `${flagForCode(spec.country)} ${spec.country}` : '不限国家';
+      const outputs = (spec.outputs || job.exports || []).map(item => poolOutputLabels[item] || item).join(' / ') || '—';
+      const parts = [];
+      if (status !== 'idle') parts.push(`${String(spec.source || 'proxyip').toUpperCase()} · ${country} · 目标 ${spec.target_routes || 0} 个节点 · ${outputs}`);
+      if (job.attempt_limit) parts.push(`出口源验证 ${job.attempted || 0}/${job.attempt_limit} · 可用 ${job.verified || 0} · 国家一致 ${job.country_matched || 0}`);
+      if (job.quality_total) parts.push(`${job.quality_phase === 'round2' ? '稳定性复检' : '节点检测'} ${job.quality_completed || 0}/${job.quality_total} · 当前通过 ${job.quality_passed || 0}`);
+      if (job.built_routes || ['ready','partial'].includes(status)) parts.push(`已生成节点 ${job.built_routes || 0}/${spec.target_routes || 0}`);
+      if (Number(job.build_attempt || 0) > 1) parts.push(`自动补充第 ${job.build_attempt} 轮`);
+      if (job.candidate_total) parts.push(`候选池 ${job.candidate_total} · 本轮起点 ${Number(job.window_start || 0) + 1} · 下次 ${Number(job.next_cursor || 0) + 1}`);
+      if (job.updated_at) parts.push(`更新 ${fmtTime(job.updated_at)}`);
+      $('poolBuildJobMeta').innerHTML = parts.map(part => `<span>${escapeHTML(part)}</span>`).join('');
+      $('cancelPoolBuild').hidden = !['queued','loading','verifying','building'].includes(status);
+      $('cancelPoolBuild').disabled = status === 'cancelling';
+      $('retryPoolBuild').hidden = !['partial','failed','cancelled','interrupted'].includes(status);
+      $('retryPoolBuild').disabled = active;
+      $('startPoolBuild').disabled = active || state.busy;
+      ['poolBuildName','poolBuildSource','poolBuildCountry','poolBuildTarget','poolOutputPort','poolOutputClash','poolOutputV2rayn'].forEach(id => { $(id).disabled = active; });
+    }
+
+    async function loadPoolBuild() {
+      if (state.poolBuildLoading) return;
+      state.poolBuildLoading = true;
+      try {
+        renderPoolBuild(await getJSON('/api/pool-build'));
+      } catch (error) {
+        $('poolBuildStatusPill').textContent = '状态不可用';
+        $('poolBuildStatusPill').className = 'pill bad';
+        $('poolBuildJobCopy').textContent = `后台任务状态加载失败：${error.message}`;
+      } finally {
+        state.poolBuildLoading = false;
+      }
+    }
+
+    function renderPoolProfiles(data = {}) {
+      const profiles = Array.isArray(data.profiles) ? data.profiles : state.poolProfiles;
+      state.poolProfiles = profiles;
+      if (Object.prototype.hasOwnProperty.call(data, 'active_profile_id')) state.activePoolProfileID = data.active_profile_id || '';
+      const total = profiles.length;
+      const totalPages = Math.max(1, Math.ceil(total / state.poolProfilePageSize));
+      state.poolProfilePage = Math.min(Math.max(1, state.poolProfilePage), totalPages);
+      const start = (state.poolProfilePage - 1) * state.poolProfilePageSize;
+      const visible = profiles.slice(start, start + state.poolProfilePageSize);
+      const active = poolBuildActiveStates.has(state.poolBuild?.job?.status || 'idle');
+      $('poolProfileCount').textContent = `${total} 个`;
+      $('poolProfileSummary').textContent = total ? `显示 ${start + 1}–${Math.min(start + visible.length, total)}，共 ${total} 个命名分组` : '保留最近 100 个命名分组';
+      $('poolProfilePageText').textContent = `${state.poolProfilePage} / ${totalPages}`;
+      $('poolProfilePrev').disabled = state.poolProfilePage <= 1;
+      $('poolProfileNext').disabled = state.poolProfilePage >= totalPages;
+      if (!visible.length) {
+        $('poolProfileGrid').innerHTML = '<div class="empty">尚无历史分组；首次提交后会自动保存。</div>';
+        return;
+      }
+      $('poolProfileGrid').innerHTML = visible.map(profile => {
+        const spec = profile.spec || {};
+        const result = profile.last_result || {};
+        const status = result.status || 'idle';
+        const isCurrent = profile.id === state.activePoolProfileID;
+        const statusLabel = isCurrent ? '正在使用' : (poolBuildLabels[status] || status);
+        const statusClass = isCurrent || status === 'ready' ? 'good' : ['failed','interrupted'].includes(status) ? 'bad' : (status === 'idle' ? '' : 'warn');
+        const country = spec.country ? `${flagForCode(spec.country)} ${spec.country}` : '不限国家';
+        const outputs = (spec.outputs || []).map(item => `<span class="pool-profile-output">${escapeHTML(poolOutputLabels[item] || item)}</span>`).join('');
+        const snapshot = profile.last_snapshot || null;
+        const nodeCount = Number(snapshot?.node_count || result.built_routes || 0);
+        const routeResult = snapshot ? `已保存 ${nodeCount} 个可切换节点` : (['ready','partial'].includes(status) ? `已生成 ${Number(result.built_routes || 0)}/${Number(spec.target_routes || 0)} 个节点` : (result.error || result.message || '等待首次构建'));
+        return `<article class="pool-profile-card">
+          <div class="pool-profile-head"><div class="pool-profile-name" title="${escapeHTML(profile.name || '')}">${escapeHTML(profile.name || '未命名代理池')}</div><span class="pill ${statusClass}">${escapeHTML(statusLabel)}</span></div>
+          <div class="pool-profile-spec">${escapeHTML(String(spec.source || 'proxyip').toUpperCase())} · ${escapeHTML(country)} · 目标 ${Number(spec.target_routes || 0)} 个节点</div>
+          <div class="pool-profile-outputs">${outputs || '<span class="pool-profile-output">未选择输出</span>'}</div>
+          <div class="pool-profile-result">${escapeHTML(routeResult)}<br>创建 ${Number(profile.build_count || 0)} 次 · 直接使用 ${Number(profile.activation_count || 0)} 次 · ${escapeHTML(fmtTime(profile.last_used_at, false))}</div>
+          <div class="pool-profile-actions"><button class="btn" data-profile-action="load" data-profile-id="${escapeHTML(profile.id || '')}" ${active ? 'disabled' : ''}>载入参数</button><button class="btn primary" data-profile-action="activate" data-profile-id="${escapeHTML(profile.id || '')}" ${active || !snapshot || isCurrent ? 'disabled' : ''}>${isCurrent ? '正在使用' : '立即使用'}</button><button class="btn" data-profile-action="rebuild" data-profile-id="${escapeHTML(profile.id || '')}" ${active ? 'disabled' : ''}>重新检测</button></div>
+        </article>`;
+      }).join('');
+    }
+
+    async function loadPoolProfiles() {
+      if (state.poolProfilesLoading) return;
+      state.poolProfilesLoading = true;
+      try {
+        renderPoolProfiles(await getJSON('/api/pool-profiles'));
+      } catch (error) {
+        $('poolProfileGrid').innerHTML = `<div class="empty">历史分组加载失败：${escapeHTML(error.message)}</div>`;
+      } finally {
+        state.poolProfilesLoading = false;
+      }
+    }
+
+    function applyPoolProfileToForm(profile) {
+      setCustomView('build');
+      const spec = profile?.spec || {};
+      $('poolBuildName').value = spec.name || profile?.name || '默认自选池';
+      $('poolBuildSource').value = spec.source || 'proxyip';
+      const country = spec.country || '';
+      if (country && ![...$('poolBuildCountry').options].some(option => option.value === country)) {
+        $('poolBuildCountry').add(new Option(`${flagForCode(country)} ${country}`, country));
+      }
+      $('poolBuildCountry').value = country;
+      $('poolBuildTarget').value = String(Number(spec.target_routes || 50));
+      const outputs = new Set(Array.isArray(spec.outputs) && spec.outputs.length ? spec.outputs : ['port','clash','v2rayn']);
+      $('poolOutputPort').checked = outputs.has('port');
+      $('poolOutputClash').checked = outputs.has('clash');
+      $('poolOutputV2rayn').checked = outputs.has('v2rayn');
+      $('poolBuilderPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      showToast(`已载入“${profile.name || '未命名代理池'}”配置`);
+    }
+
+    function validatePoolBuild(payload) {
+      if (!payload.name) throw new Error('请填写代理池名称');
+      if (!Number.isInteger(payload.target_routes) || payload.target_routes < 1 || payload.target_routes > 100) throw new Error('节点数量必须是 1–100');
+      if (!payload.outputs.length) throw new Error('请至少选择端口、Clash、V2RayN 中的一种使用方式');
+      return payload;
+    }
+
+    function openPoolBuildConfirmation(spec = null) {
+      try {
+        const payload = validatePoolBuild(poolBuildPayload(spec));
+        const country = payload.country ? `${flagForCode(payload.country)} ${payload.country}` : '不限国家';
+        const outputs = payload.outputs.map(item => poolOutputLabels[item]).join('、');
+        openModal('pool_build', payload, `${payload.source.toUpperCase()} · ${country} · 生成 ${payload.target_routes} 个可切换节点 · ${outputs}`);
+      } catch (error) {
+        showToast(error.message, true);
+      }
+    }
+
+    $('customRoutePrev').addEventListener('click', () => { state.customRoutePage--; if (state.customPool) renderCustomPool(state.customPool); });
+    $('customRouteNext').addEventListener('click', () => { state.customRoutePage++; if (state.customPool) renderCustomPool(state.customPool); });
+    document.querySelectorAll('[data-copy-target]').forEach(button => button.addEventListener('click', async () => {
+      const value = $(button.dataset.copyTarget).textContent.trim();
+      try { await navigator.clipboard.writeText(value); showToast('地址已复制'); } catch (_) { showToast('浏览器未允许复制，请手动选择地址', true); }
+    }));
+    document.querySelectorAll('[data-custom-action]').forEach(button => button.addEventListener('click', () => openModal(`custom_${button.dataset.customAction}`)));
+    $('startPoolBuild').addEventListener('click', () => openPoolBuildConfirmation());
+    $('retryPoolBuild').addEventListener('click', () => {
+      const spec = state.poolBuild?.job?.spec;
+      if (spec) openPoolBuildConfirmation(spec);
+    });
+    $('cancelPoolBuild').addEventListener('click', () => openModal('pool_cancel', { action: 'cancel' }, state.poolBuild?.job?.spec?.name || '当前代理池'));
+    $('poolProfilePrev').addEventListener('click', () => { state.poolProfilePage--; renderPoolProfiles(); });
+    $('poolProfileNext').addEventListener('click', () => { state.poolProfilePage++; renderPoolProfiles(); });
+    $('poolProfileGrid').addEventListener('click', event => {
+      const button = event.target.closest('[data-profile-action]');
+      if (!button || button.disabled) return;
+      const profile = state.poolProfiles.find(item => item.id === button.dataset.profileId);
+      if (!profile) return;
+      if (button.dataset.profileAction === 'load') applyPoolProfileToForm(profile);
+      if (button.dataset.profileAction === 'activate') openModal('pool_activate', { action: 'activate', profile_id: profile.id }, `${profile.name || '未命名代理池'} · ${Number(profile.last_snapshot?.node_count || 0)} 个已保存节点`);
+      if (button.dataset.profileAction === 'rebuild') openPoolBuildConfirmation(profile.spec);
+    });
+
+    function toggleSubscriptionMode() {
+      const custom = $('subscriptionMode').value === 'custom';
+      $('customNodesField').hidden = !custom;
+      $('randomCountField').hidden = custom;
+      $('specifiedPortField').hidden = false;
+    }
+    $('subscriptionMode').addEventListener('change', toggleSubscriptionMode);
+
+    const reverseLabels = { auto: '自动 ProxyIP', proxyip: '自选 ProxyIP', socks5: '自选 SOCKS5', http: '自选 HTTP', https: '自选 HTTPS' };
+    function renderRuntimeReverse(reverse = {}, available = true) {
+      const mode = ['auto','proxyip','socks5','http','https'].includes(reverse.mode) ? reverse.mode : 'auto';
+      const addresses = Array.isArray(reverse.addresses) ? reverse.addresses.filter(Boolean) : [];
+      $('runtimeReversePill').className = `pill ${available ? 'good' : 'bad'}`;
+      $('runtimeReversePill').textContent = available ? '配置已读取' : '暂不可用';
+      $('runtimeReverseMode').textContent = available ? (reverseLabels[mode] || mode.toUpperCase()) : '读取失败';
+      $('runtimeReverseAddresses').textContent = available ? (mode === 'auto' ? 'Cloudflare 自动选择' : (addresses.join(' · ') || `${reverse.address_count || 0} 个已配置地址`)) : '—';
+      $('runtimeReverseGlobal').textContent = available ? (reverse.global ? '全局反代' : '仅反代链路') : '—';
+    }
+
+    function renderReverseCurrent(reverse = {}) {
+      const mode = ['auto','proxyip','socks5','http','https'].includes(reverse.mode) ? reverse.mode : 'auto';
+      const addresses = Array.isArray(reverse.addresses) ? reverse.addresses.filter(Boolean) : [];
+      const detail = mode === 'auto' ? '不使用左侧自选节点' : `${reverse.address_count || addresses.length || 0} 个地址${addresses.length ? ` · ${addresses.join('、')}` : ''}`;
+      $('reverseCurrent').className = 'reverse-state';
+      $('reverseCurrent').innerHTML = `<strong>当前已生效：${escapeHTML(reverseLabels[mode] || mode.toUpperCase())}</strong><span>${escapeHTML(detail)}${reverse.global ? ' · 全局' : ''}</span>`;
+      renderRuntimeReverse(reverse, true);
+    }
+
+    function selectedReverseEntries(mode = null) {
+      const entries = state.catalog.data?.selection?.items || [];
+      return mode ? entries.filter(entry => entry.node?.source === mode) : entries;
+    }
+
+    function renderReversePlan() {
+      const mode = $('reverseMode').value;
+      const allEntries = selectedReverseEntries();
+      const matching = selectedReverseEntries(mode);
+      const ready = Boolean(state.cfConfig?.configured) && state.cfConfig?.reachable !== false;
+      let valid = mode === 'auto';
+      if (mode === 'proxyip') valid = matching.length >= 1 && matching.length <= 8;
+      if (['socks5','http','https'].includes(mode)) valid = matching.length === 1;
+      if (mode === 'auto') {
+        $('reversePlan').className = `reverse-state ${allEntries.length ? 'warning' : ''}`;
+        $('reversePlan').innerHTML = `<strong>待应用：恢复自动 ProxyIP</strong><span>${allEntries.length ? `左侧 ${allEntries.length} 个自选节点不会被使用。` : '由 Cloudflare 自动选择反代地址。'}</span>`;
+        $('applyReverse').textContent = '恢复自动 ProxyIP';
+      } else {
+        const addressText = matching.map(entry => entry.node?.address).filter(Boolean).join('、');
+        $('reversePlan').className = `reverse-state ${valid ? 'pending' : 'warning'}`;
+        $('reversePlan').innerHTML = `<strong>待应用：${escapeHTML(reverseLabels[mode] || mode.toUpperCase())} · ${matching.length} 个</strong><span>${valid ? escapeHTML(addressText) : `需要${mode === 'proxyip' ? ' 1–8 个' : '且只能有 1 个'}已验证 ${mode.toUpperCase()} 节点。`}</span>`;
+        $('applyReverse').textContent = valid ? `应用 ${matching.length} 个 ${mode.toUpperCase()}` : '节点数量不符合要求';
+      }
+      $('applyReverse').disabled = state.busy || !ready || !valid;
+    }
+
+    function suggestReverseModeFromSelection() {
+      const entries = selectedReverseEntries();
+      const sources = [...new Set(entries.map(entry => entry.node?.source).filter(source => ['proxyip','socks5','http','https'].includes(source)))];
+      const appliedMode = String(state.cfConfig?.reverse_proxy?.mode || 'auto').toLowerCase();
+      if (!state.reverseModeTouched && appliedMode === 'auto' && sources.length === 1) {
+        $('reverseMode').value = sources[0];
+        state.reverseSuggested = true;
+      }
+      renderReversePlan();
+    }
+
+    $('reverseMode').addEventListener('change', () => { state.reverseModeTouched = true; state.reverseSuggested = false; renderReversePlan(); });
+    $('reverseGlobal').addEventListener('change', renderReversePlan);
+
+    async function loadCloudflareConfig() {
+      $('cfConfigPill').className = 'pill';
+      $('cfConfigPill').textContent = '正在读取';
+      try {
+        const data = await getJSON('/api/cloudflare-config');
+        state.cfConfig = data;
+        if (!data.configured || data.reachable === false) {
+          $('cfConfigPill').className = 'pill bad';
+          $('cfConfigPill').textContent = '控制桥未就绪';
+          $('subscriptionCurrent').textContent = data.reason || data.error || 'Cloudflare 控制桥未配置';
+          $('applySubscription').disabled = true;
+          renderRuntimeReverse({}, false);
+          renderReversePlan();
+          return;
+        }
+        $('cfConfigPill').className = 'pill good';
+        $('cfConfigPill').textContent = '已连接';
+        const subscription = data.subscription || {};
+        const mode = subscription.mode === 'custom' ? 'custom' : 'random';
+        $('subscriptionMode').value = mode;
+        $('randomPreferredCount').value = subscription.random_count || 50;
+        $('specifiedPort').value = Number.isFinite(Number(subscription.specified_port)) ? subscription.specified_port : -1;
+        $('customPreferredNodes').value = subscription.custom_nodes || '';
+        $('subscriptionCurrent').textContent = mode === 'custom' ? `当前：自定义优选 · ${subscription.custom_count || 0} 条` : `当前：随机优选 · ${subscription.random_count || 0} 个入口`;
+        const reverse = data.reverse_proxy || {};
+        $('reverseMode').value = ['auto','proxyip','socks5','http','https'].includes(reverse.mode) ? reverse.mode : 'auto';
+        state.reverseModeTouched = false;
+        state.reverseSuggested = false;
+        $('reverseGlobal').checked = Boolean(reverse.global);
+        renderReverseCurrent(reverse);
+        $('applySubscription').disabled = false;
+        toggleSubscriptionMode();
+        suggestReverseModeFromSelection();
+      } catch (error) {
+        $('cfConfigPill').className = 'pill bad';
+        $('cfConfigPill').textContent = '读取失败';
+        $('subscriptionCurrent').textContent = error.message;
+        renderRuntimeReverse({}, false);
+        renderReversePlan();
+      }
+    }
+
+    function catalogQuery() {
+      const params = new URLSearchParams({
+        source: state.catalog.source,
+        country: state.catalog.country,
+        status: state.catalog.status,
+        q: state.catalog.search,
+        page: String(state.catalog.page),
+        page_size: String(state.catalog.pageSize)
+      });
+      return `/api/catalog?${params}`;
+    }
+
+    async function loadCatalog() {
+      if (state.catalog.loading) return;
+      state.catalog.loading = true;
+      $('catalogSyncPill').className = 'pill';
+      $('catalogSyncPill').textContent = '正在同步';
+      $('candidateTable').innerHTML = '<tr><td colspan="7" class="empty">正在加载候选节点…</td></tr>';
+      try {
+        state.catalog.data = await getJSON(catalogQuery());
+        renderCatalog();
+        $('catalogSyncPill').className = 'pill good';
+        $('catalogSyncPill').textContent = `${state.catalog.data.total || 0} 个结果`;
+      } catch (error) {
+        $('candidateTable').innerHTML = `<tr><td colspan="7" class="empty">加载失败：${escapeHTML(error.message)}</td></tr>`;
+        $('catalogSyncPill').className = 'pill bad';
+        $('catalogSyncPill').textContent = '加载失败';
+      } finally {
+        state.catalog.loading = false;
+      }
+    }
+
+    function renderCatalog() {
+      const data = state.catalog.data || {};
+      const sources = data.sources || [];
+      $('candidateSourceCards').innerHTML = sources.length ? sources.map(source => `<button type="button" class="source-card" data-source-card="${escapeHTML(source.id)}"><div class="source-card-head"><strong>${escapeHTML(source.name)}</strong><span class="pill ${source.error ? 'bad' : 'good'}">${source.error ? '源异常' : `${source.countries || 0} 国`}</span></div><div class="source-card-number">${Number(source.total || 0).toLocaleString()}</div><div class="source-card-meta">${escapeHTML(source.description || '')}</div><div class="source-card-meta">${source.refreshed_at ? `更新 ${fmtTime(source.refreshed_at)}` : '尚未更新'}</div></button>`).join('') : '<div class="empty">没有可用候选源</div>';
+      document.querySelectorAll('[data-source-card]').forEach(button => button.addEventListener('click', () => {
+        clearCandidateChecks();
+        state.catalog.source = button.dataset.sourceCard;
+        state.catalog.page = 1;
+        $('candidateSourceFilter').value = state.catalog.source;
+        loadCatalog();
+      }));
+
+      const countries = data.countries || [];
+      const previousCountry = state.catalog.country;
+      $('candidateCountryFilter').innerHTML = '<option value="all">全部国家</option>' + countries.map(country => `<option value="${escapeHTML(country.code)}">${escapeHTML(country.emoji || flagForCode(country.code))} ${escapeHTML(country.name || country.code)} (${Number(country.total || 0).toLocaleString()})</option>`).join('');
+      $('candidateCountryFilter').value = countries.some(country => country.code === previousCountry) ? previousCountry : 'all';
+      state.catalog.country = $('candidateCountryFilter').value;
+      const previousQuickCountry = $('quickCandidateCountry').value;
+      $('quickCandidateCountry').innerHTML = '<option value="">不限国家 · 自动选优</option>' + countries.map(country => `<option value="${escapeHTML(country.code)}">${escapeHTML(country.emoji || flagForCode(country.code))} ${escapeHTML(country.name || country.code)} (${Number(country.total || 0).toLocaleString()})</option>`).join('');
+      if (countries.some(country => country.code === previousQuickCountry)) $('quickCandidateCountry').value = previousQuickCountry;
+      const previousBuildCountry = $('poolBuildCountry').value;
+      $('poolBuildCountry').innerHTML = '<option value="">不限国家 · 自动选优</option>' + countries.map(country => `<option value="${escapeHTML(country.code)}">${escapeHTML(country.emoji || flagForCode(country.code))} ${escapeHTML(country.name || country.code)} (${Number(country.total || 0).toLocaleString()})</option>`).join('');
+      if (countries.some(country => country.code === previousBuildCountry)) $('poolBuildCountry').value = previousBuildCountry;
+
+      const items = data.items || [];
+      $('candidateTable').innerHTML = items.length ? items.map(node => {
+        const verification = node.verification;
+        const verified = Boolean(verification && verification.success);
+        const failed = Boolean(verification && !verification.success);
+        const actual = verified ? `${flagForCode(verification.country_code)} ${escapeHTML(verification.country_name || verification.country_code)} · ${escapeHTML(verification.colo || '—')} · ${verification.latency_ms || 0} ms` : failed ? escapeHTML(verification.error || '验证失败') : '尚未由服务器实测';
+        const resultClass = verified ? (verification.country_matched ? 'good' : 'warn') : failed ? 'bad' : '';
+        const resultLabel = verified ? (verification.country_matched ? '实测通过' : '实测国家不一致') : failed ? '实测失败' : '待验证';
+        const checked = state.catalog.checked.has(node.id);
+        return `<tr><td class="candidate-select-col"><input class="candidate-checkbox" type="checkbox" data-candidate-check="${escapeHTML(node.id)}" data-source="${escapeHTML(node.source)}" data-address="${escapeHTML(node.address)}" ${checked ? 'checked' : ''} aria-label="选择 ${escapeHTML(node.address)}"></td><td><span class="pill">${escapeHTML(String(node.source || '').toUpperCase())}</span></td><td><div class="node-country">${escapeHTML(node.country_emoji || flagForCode(node.country_code))} ${escapeHTML(node.country_name || node.country_code || '未知')}</div><div class="node-meta">来源标注 · ${escapeHTML(node.city || '—')}</div></td><td><div class="candidate-address">${escapeHTML(node.address)}</div><div class="node-meta">${escapeHTML(node.protocol || '')}</div></td><td><div>${escapeHTML(node.organization || '—')}</div><div class="node-meta">AS${escapeHTML(node.asn || '—')}</div></td><td class="candidate-result"><span class="pill ${resultClass}">${resultLabel}</span><div class="node-meta">${actual}</div></td><td><div class="candidate-actions"><button class="mini-button" data-candidate-verify="${escapeHTML(node.id)}" data-source="${escapeHTML(node.source)}">${verification ? '重新验证' : '验证'}</button><button class="mini-button ${node.selected ? 'danger' : ''}" data-candidate-select="${escapeHTML(node.id)}" data-source="${escapeHTML(node.source)}" data-selected="${node.selected ? 'false' : 'true'}" ${!verified && !node.selected ? 'disabled' : ''}>${node.selected ? '移出自选' : '加入自选'}</button></div></td></tr>`;
+      }).join('') : '<tr><td colspan="7" class="empty">没有符合条件的候选节点</td></tr>';
+
+      const pages = Math.max(1, Number(data.pages || 1));
+      state.catalog.page = Math.min(state.catalog.page, pages);
+      const start = (state.catalog.page - 1) * state.catalog.pageSize;
+      $('candidateCount').textContent = `${Number(data.total || 0).toLocaleString()} 个候选${data.total ? ` · 显示 ${start + 1}-${Math.min(start + state.catalog.pageSize, data.total)}` : ''}`;
+      $('candidatePageText').textContent = `${state.catalog.page} / ${pages}`;
+      $('candidatePrev').disabled = state.catalog.page <= 1;
+      $('candidateNext').disabled = state.catalog.page >= pages;
+      document.querySelectorAll('[data-candidate-check]').forEach(input => input.addEventListener('change', () => {
+        if (input.checked && state.catalog.checked.size >= 20 && !state.catalog.checked.has(input.dataset.candidateCheck)) {
+          input.checked = false;
+          showToast('批量操作每次最多选择 20 个候选节点', true);
+          return;
+        }
+        if (input.checked) state.catalog.checked.set(input.dataset.candidateCheck, { source: input.dataset.source, id: input.dataset.candidateCheck, address: input.dataset.address });
+        else state.catalog.checked.delete(input.dataset.candidateCheck);
+        updateCandidateBulkUI();
+      }));
+      document.querySelectorAll('[data-candidate-verify]').forEach(button => button.addEventListener('click', () => openModal('candidate_verify', { action: 'verify', source: button.dataset.source, id: button.dataset.candidateVerify }, `${button.dataset.source.toUpperCase()} · ${button.closest('tr').querySelector('.candidate-address')?.textContent || ''}`)));
+      document.querySelectorAll('[data-candidate-select]').forEach(button => button.addEventListener('click', () => openModal('candidate_select', { action: 'select', source: button.dataset.source, id: button.dataset.candidateSelect, selected: button.dataset.selected === 'true' }, `${button.dataset.source.toUpperCase()} · ${button.closest('tr').querySelector('.candidate-address')?.textContent || ''}`)));
+      updateCandidateBulkUI();
+      renderSelectedCandidates(data.selection || {});
+    }
+
+    function renderSelectedCandidates(selection) {
+      const entries = selection.items || [];
+      $('selectionCount').textContent = `${entries.length} 个`;
+      $('selectedCandidates').innerHTML = entries.length ? entries.map(entry => {
+        const node = entry.node || {};
+        const verification = entry.verification || {};
+        return `<div class="selected-row"><span class="pill good">${escapeHTML(String(node.source || '').toUpperCase())}</span><div><div class="mono">${escapeHTML(node.address || '')}</div><div class="node-meta">实测 ${flagForCode(verification.country_code)} ${escapeHTML(verification.country_name || verification.country_code || '—')} · ${verification.latency_ms || 0} ms</div></div><button class="mini-button danger" data-selected-remove="${escapeHTML(node.id)}" data-source="${escapeHTML(node.source)}">移出</button></div>`;
+      }).join('') : '<div class="empty">尚未选择候选节点</div>';
+      document.querySelectorAll('[data-selected-remove]').forEach(button => button.addEventListener('click', () => openModal('candidate_select', { action: 'select', source: button.dataset.source, id: button.dataset.selectedRemove, selected: false }, `${button.dataset.source.toUpperCase()} · 移出自选列表`)));
+      suggestReverseModeFromSelection();
+    }
+
+    function updateCandidateBulkUI() {
+      const count = state.catalog.checked.size;
+      $('candidateCheckedCount').textContent = `已选择 ${count} / 20 个候选`;
+      $('bulkVerifyCandidates').disabled = count < 1 || state.busy;
+      $('bulkVerifyAndSelect').disabled = count < 1 || state.busy;
+      const visible = [...document.querySelectorAll('[data-candidate-check]')];
+      const checkedVisible = visible.filter(input => input.checked).length;
+      $('candidateSelectPage').checked = visible.length > 0 && checkedVisible === visible.length;
+      $('candidateSelectPage').indeterminate = checkedVisible > 0 && checkedVisible < visible.length;
+      $('candidateSelectPage').disabled = visible.length < 1 || state.busy;
+    }
+
+    function clearCandidateChecks() {
+      state.catalog.checked.clear();
+      document.querySelectorAll('[data-candidate-check]').forEach(input => { input.checked = false; });
+      updateCandidateBulkUI();
+    }
+
+    function candidateBatchPayload(selectVerified) {
+      return {
+        action: 'verify_batch',
+        select_verified: selectVerified,
+        candidates: [...state.catalog.checked.values()].map(item => ({ source: item.source, id: item.id }))
+      };
+    }
+
+    function syncQuickCandidateLimit() {
+      $('quickCandidateCount').max = '100';
+      if (Number($('quickCandidateCount').value) > 100) $('quickCandidateCount').value = '100';
+    }
+
+    $('candidateSelectPage').addEventListener('change', event => {
+      const visible = [...document.querySelectorAll('[data-candidate-check]')];
+      if (!event.target.checked) {
+        visible.forEach(input => { input.checked = false; state.catalog.checked.delete(input.dataset.candidateCheck); });
+        updateCandidateBulkUI();
+        return;
+      }
+      let added = 0;
+      visible.forEach(input => {
+        if (state.catalog.checked.size >= 20 && !state.catalog.checked.has(input.dataset.candidateCheck)) return;
+        input.checked = true;
+        state.catalog.checked.set(input.dataset.candidateCheck, { source: input.dataset.source, id: input.dataset.candidateCheck, address: input.dataset.address });
+        added++;
+      });
+      if (visible.length > added) showToast('当前页已选前 20 个候选；单次批量上限为 20', true);
+      updateCandidateBulkUI();
+    });
+    $('bulkVerifyCandidates').addEventListener('click', () => {
+      if (!state.catalog.checked.size) return;
+      openModal('candidate_verify_batch', candidateBatchPayload(false), `${state.catalog.checked.size} 个候选`);
+    });
+    $('bulkVerifyAndSelect').addEventListener('click', () => {
+      if (!state.catalog.checked.size) return;
+      openModal('candidate_verify_select', candidateBatchPayload(true), `${state.catalog.checked.size} 个候选`);
+    });
+    $('quickCandidateSource').addEventListener('change', syncQuickCandidateLimit);
+    syncQuickCandidateLimit();
+    $('quickAutoSelect').addEventListener('click', () => {
+      const source = $('quickCandidateSource').value;
+      const country = $('quickCandidateCountry').value;
+      const count = Number($('quickCandidateCount').value);
+      if (!Number.isInteger(count) || count < 1 || count > 100) return showToast('最终可用路由数量必须是 1–100', true);
+      $('poolBuildSource').value = source;
+      $('poolBuildCountry').value = country;
+      $('poolBuildTarget').value = String(count);
+      setAppPage('custom', true);
+      setCustomView('build');
+      setTimeout(() => $('poolOutputPort').focus(), 50);
+      showToast('已带入来源、国家和数量；请选择一个或多个使用方式');
+    });
+
+    $('candidateSourceFilter').addEventListener('change', event => { clearCandidateChecks(); state.catalog.source = event.target.value; state.catalog.page = 1; loadCatalog(); });
+    $('candidateCountryFilter').addEventListener('change', event => { clearCandidateChecks(); state.catalog.country = event.target.value; state.catalog.page = 1; loadCatalog(); });
+    $('candidateStatusFilter').addEventListener('change', event => { clearCandidateChecks(); state.catalog.status = event.target.value; state.catalog.page = 1; loadCatalog(); });
+    let catalogSearchTimer = null;
+    $('candidateSearch').addEventListener('input', event => {
+      clearTimeout(catalogSearchTimer);
+      catalogSearchTimer = setTimeout(() => { clearCandidateChecks(); state.catalog.search = event.target.value.trim(); state.catalog.page = 1; loadCatalog(); }, 300);
+    });
+    $('candidatePrev').addEventListener('click', () => { if (state.catalog.page > 1) { clearCandidateChecks(); state.catalog.page--; loadCatalog(); } });
+    $('candidateNext').addEventListener('click', () => { clearCandidateChecks(); state.catalog.page++; loadCatalog(); });
+    $('refreshCatalog').addEventListener('click', () => openModal('catalog_refresh', { action: 'refresh', source: state.catalog.source }, state.catalog.source === 'all' ? '全部 4 个候选源' : state.catalog.source.toUpperCase()));
+    $('applySubscription').addEventListener('click', () => {
+      const mode = $('subscriptionMode').value;
+      const count = Number($('randomPreferredCount').value);
+      const port = Number($('specifiedPort').value);
+      const custom = $('customPreferredNodes').value;
+      if (mode === 'random' && (!Number.isInteger(count) || count < 1 || count > 99)) return showToast('随机优选数量必须是 1–99', true);
+      if (mode === 'custom' && !custom.trim()) return showToast('自定义优选地址不能为空', true);
+      openModal('subscription_apply', { action: 'subscription', mode, random_count: count, specified_port: port, custom_nodes: custom }, mode === 'random' ? `随机优选 ${count} 个节点` : `自定义优选 ${custom.split(/\r?\n/).filter(line => line.trim()).length} 条`);
+    });
+    $('applyReverse').addEventListener('click', () => {
+      const mode = $('reverseMode').value;
+      const entries = state.catalog.data?.selection?.items || [];
+      const matchingEntries = entries.filter(entry => entry.node?.source === mode);
+      const matching = matchingEntries.map(entry => entry.node.id);
+      const addresses = matchingEntries.map(entry => entry.node?.address).filter(Boolean);
+      if (mode === 'proxyip' && (matching.length < 1 || matching.length > 8)) return showToast('请先选择 1–8 个已验证 ProxyIP', true);
+      if (['socks5','http','https'].includes(mode) && matching.length !== 1) return showToast(`请只选择 1 个已验证 ${mode.toUpperCase()} 节点`, true);
+      const detail = mode === 'auto' ? `恢复自动 ProxyIP；左侧 ${entries.length} 个自选节点不会被使用` : `${mode.toUpperCase()} · ${matching.length} 个节点 · ${addresses.join('、')}`;
+      openModal('reverse_apply', { action: 'reverse_proxy', mode, candidate_ids: mode === 'auto' ? [] : matching, global: $('reverseGlobal').checked }, detail);
+    });
+
+    const actionCopy = {
+      egress_scan: { title: '确认扫描全部节点的真实出口？', description: '隔离探针会逐个切换节点，访问 Cloudflare Trace 获取真实出口 IP、国家和机房。', warning: '约需 2～5 分钟，只操作 17891 隔离探针，不切换 7890 主代理。', confirm: '开始真实扫描', danger: false },
+      speed_test: { title: '确认测试这个节点的上传和下载？', description: '将通过隔离探针对选中节点进行一次小流量测速。', warning: '使用 Cloudflare 官方测速端点，下载约 2 MB、上传约 1 MB；不会占用 7890 主代理。', confirm: '开始测速', danger: false },
+      country_ports: { title: '确认应用国家专用代理端口？', description: '将按已选择国家生成独立 HTTP 代理入口，并只使用连续验证一致的节点轮转。', warning: '会短暂重启 17891/19091 隔离探针；7890 主代理与其他代理入口保持运行。', confirm: '确认应用', danger: false },
+      healthcheck: { title: '确认重新检查全部节点？', description: '控制端会立即检测所有 Provider 节点，期间代理仍可继续使用。', warning: '健康检查会产生一轮短连接，请勿连续重复触发。', confirm: '开始检查', danger: false },
+      refresh: { title: '确认刷新订阅？', description: '将从当前 Cloudflare 订阅源拉取最新配置，再由 Mihomo 更新节点池。', warning: '只更新 Provider，不修改 7890 监听端口或已有业务配置。', confirm: '刷新订阅', danger: false },
+      restart: { title: '确认重启代理服务？', description: '将停止并重新启动主代理池服务。', warning: '7890 端口会短暂中断数秒，正在使用代理的请求可能需要重试。', confirm: '确认重启', danger: true },
+      catalog_refresh: { title: '确认刷新候选节点来源？', description: '将重新从官方后台使用的公共来源拉取候选列表。', warning: '只更新候选缓存，不修改 Cloudflare 配置或 7890 主代理。', confirm: '刷新候选源', danger: false },
+      candidate_verify: { title: '确认验证这个候选节点？', description: '代理池服务器会通过该候选访问探测端点，记录真实出口国家与延迟。', warning: '验证只在隔离请求中进行，失败节点不会进入自选或运行池。', confirm: '开始验证', danger: false },
+      candidate_select: { title: '确认修改自选节点？', description: '只修改 9190 的已验证自选列表。', warning: '本操作尚不修改 Cloudflare；必须再点击“应用反代配置”才会生效。', confirm: '确认修改', danger: false },
+      candidate_verify_batch: { title: '确认批量验证这些候选？', description: '代理池服务器会以最多 4 路并发验证所选候选，并分别记录真实出口国家与延迟。', warning: '单次最多 20 个；本操作只保存验证结果，不会自动修改自选、Cloudflare 或 7890 主代理。', confirm: '开始批量验证', danger: false },
+      candidate_verify_select: { title: '确认验证并加入自选？', description: '代理池服务器会批量验证所选候选，只把可用且真实国家与来源标注一致的节点加入自选。', warning: 'ProxyIP 最多保留 8 个；SOCKS5/HTTP/HTTPS 各最多 1 个。本操作仍不会直接修改 Cloudflare。', confirm: '验证并加入', danger: false },
+      candidate_auto_select: { title: '确认按国家自动验证并加入？', description: '系统会从指定来源和国家中按持久游标轮转候选，直到凑够目标数量或达到安全尝试上限。', warning: '本轮最多 4 路并发、ProxyIP 尝试 40 个；下次会从新位置继续，不会固定重复前 40 个。成功成员会自动同步到独立 7891，7890 主代理保持运行。', confirm: '开始自动选择', danger: false },
+      subscription_apply: { title: '确认修改 Cloudflare 优选订阅？', description: '将更新小白/高手模式的优选节点配置，并刷新本机订阅 Provider。', warning: '操作前会在 Cloudflare KV 自动备份 config.json 与 ADD.txt；提交后会刷新订阅 Provider。', confirm: '保存并刷新订阅', danger: false },
+      reverse_apply: { title: '确认修改 Cloudflare 反代配置？', description: '将使用已验证候选更新最终出口反代设置。', warning: '操作前会自动备份 Cloudflare KV；错误的反代可能影响代理出口，可通过备份恢复。', confirm: '应用反代配置', danger: false },
+      pool_build: { title: '确认后台创建代理节点？', description: '系统会按国家生成指定数量、可在 v2rayN / Clash 中逐个切换的节点，并让局域网端口使用同一批节点。', warning: '任务提交后在服务器后台运行，刷新或关闭页面不会中断。新节点完成前保留上一版，7890 主代理保持运行。', confirm: '开始创建节点', danger: false },
+      pool_activate: { title: '确认立即使用这个历史代理池？', description: '直接启用该分组保存的节点快照，不重新抓取、不重新检测。', warning: '7891 会短暂重启数秒，7890 主代理保持运行。', confirm: '立即切换', danger: false },
+      pool_cancel: { title: '确认取消当前节点创建任务？', description: '停止候选验证或节点质量检测。', warning: '当前正在使用的代理池不会改变；隔离检测进程会安全退出。', confirm: '确认取消', danger: true },
+      custom_sync: { title: '确认同步并启动自选代理池？', description: '将轮换抽取入口候选，执行两轮严格 HTTPS 实测，再用合格路由重建独立 7891 和两种订阅。', warning: '质量筛选可能需要约 30～90 秒；失败会恢复上一版。只重启 7891/19092，7890 主代理保持运行。', confirm: '同步并启动', danger: false },
+      custom_restart: { title: '确认重启自选代理池？', description: '将重新启动独立 7891 自选池。', warning: '7891 会短暂中断；7890 主代理和其他业务不受影响。', confirm: '重启 7891', danger: true },
+      custom_stop: { title: '确认停止自选代理池？', description: '将停止 7891 自选池，但保留成员、配置与订阅。', warning: '正在使用 7891 的请求会中断；7890 主代理和其他业务不受影响。', confirm: '停止 7891', danger: true }
+    };
+    const runningCopy = {
+      candidate_verify_batch: '正在批量验证所选节点',
+      candidate_verify_select: '正在验证并加入自选',
+      candidate_auto_select: '正在按国家筛选并验证节点',
+      pool_build: '正在提交后台代理池任务',
+      pool_activate: '正在切换历史代理池',
+      pool_cancel: '正在取消代理池候选验证',
+      custom_sync: '正在同步自选代理池',
+      custom_restart: '正在重启 7891',
+      custom_stop: '正在停止 7891',
+      reverse_apply: '正在应用并核对反代配置',
+      subscription_apply: '正在保存并刷新订阅',
+      egress_scan: '正在扫描真实出口',
+      speed_test: '正在执行节点测速',
+      country_ports: '正在应用国家专用端口',
+      healthcheck: '正在检查运行节点',
+      refresh: '正在刷新订阅',
+      restart: '正在重启代理服务'
+    };
+    function createOperationID() {
+      if (crypto.randomUUID) return crypto.randomUUID();
+      return `${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}`;
+    }
+    function formatOperationElapsed() {
+      const seconds = Math.max(0, Math.floor((Date.now() - state.operationStartedAt) / 1000));
+      return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+    }
+    function startOperationProgress(action) {
+      state.operationStartedAt = Date.now();
+      if (state.operationTimer) clearInterval(state.operationTimer);
+      $('operationModal').setAttribute('aria-busy', 'true');
+      $('modalProgress').className = 'modal-progress active';
+      $('modalProgressBar').style.width = '38%';
+      $('modalProgressTrack').removeAttribute('aria-valuenow');
+      $('modalProgressTitle').textContent = runningCopy[action] || '任务处理中';
+      $('modalProgressCopy').textContent = '正在提交任务；完成前按钮已锁定，不会重复执行。';
+      $('modalElapsed').textContent = '00:00';
+      $('modalCancel').disabled = true;
+      $('modalCancel').textContent = '处理中';
+      $('modalConfirm').disabled = true;
+      $('modalConfirm').textContent = '正在处理';
+      $('modalConfirm').classList.add('loading');
+      state.operationTimer = setInterval(() => { $('modalElapsed').textContent = formatOperationElapsed(); }, 1000);
+    }
+    function updateOperationProgress(progress = {}) {
+      if (progress.phase === 'syncing_custom_pool') $('modalProgressTitle').textContent = '验证完成，正在同步独立 7891 自选池';
+      const attempted = Number(progress.attempted || 0);
+      const total = Number(progress.total || 0);
+      const verified = Number(progress.verified || 0);
+      const matched = Number(progress.country_matched || 0);
+      const selected = Number(progress.selected || 0);
+      const requested = Number(progress.requested || 0);
+      const candidateTotal = Number(progress.candidate_total || 0);
+      const windowStart = Number(progress.window_start || 0);
+      const nextCursor = Number(progress.next_cursor || 0);
+      if (total > 0) {
+        const percent = Math.max(3, Math.min(100, Math.round(attempted / total * 100)));
+        $('modalProgress').classList.add('determinate');
+        $('modalProgressBar').style.width = `${percent}%`;
+        $('modalProgressTrack').setAttribute('aria-valuenow', String(percent));
+      }
+      const parts = [`已尝试 ${attempted}${total ? ` / ${total}` : ''}`, `可用 ${verified}`, `国家一致 ${matched}`];
+      if (requested || selected) parts.push(`已加入 ${selected}${requested ? ` / ${requested}` : ''}`);
+      if (candidateTotal) parts.push(`候选池 ${candidateTotal} · 本轮从 ${windowStart + 1} 开始 · 下次 ${nextCursor + 1}`);
+      $('modalProgressCopy').textContent = `${parts.join(' · ')}。完成前不能再次提交。`;
+    }
+    function completeOperationProgress(result = {}) {
+      $('modalError').hidden = true;
+      $('modalProgress').classList.add('determinate');
+      $('modalProgressBar').style.width = '100%';
+      $('modalProgressTrack').setAttribute('aria-valuenow', '100');
+      $('modalProgressTitle').textContent = '任务已完成';
+      $('modalProgressCopy').textContent = result.message || '操作已完成，正在刷新页面数据。';
+    }
+    function resetOperationProgress(action) {
+      if (state.operationTimer) clearInterval(state.operationTimer);
+      state.operationTimer = null;
+      state.operationStartedAt = 0;
+      $('operationModal').setAttribute('aria-busy', 'false');
+      $('modalProgress').className = 'modal-progress';
+      $('modalProgressBar').style.width = '38%';
+      $('modalProgressTrack').removeAttribute('aria-valuenow');
+      $('modalCancel').disabled = false;
+      $('modalCancel').textContent = '取消';
+      $('modalConfirm').disabled = false;
+      $('modalConfirm').classList.remove('loading');
+      const copy = actionCopy[action];
+      if (copy) $('modalConfirm').textContent = copy.confirm;
+    }
+    document.querySelectorAll('[data-action]').forEach(button => button.addEventListener('click', () => openModal(button.dataset.action)));
+    function openModal(action, payload = null, detail = '') {
+      if (state.busy) return;
+      const copy = actionCopy[action];
+      if (!copy) return;
+      state.pendingAction = action;
+      state.pendingPayload = payload;
+      if (payload && ['verify_batch','auto_select'].includes(payload.action) && !payload.request_id) payload.request_id = createOperationID();
+      state.pendingDetail = detail;
+      $('modalError').hidden = true;
+      $('modalError').textContent = '';
+      resetOperationProgress(action);
+      $('modalTitle').textContent = copy.title;
+      $('modalDescription').textContent = action === 'speed_test' ? `${copy.description} 节点：${state.speedNode}` : action === 'country_ports' ? `${copy.description} 当前选择：${state.countryPortSelection.length ? state.countryPortSelection.join('、') : '关闭全部国家端口'}` : detail ? `${copy.description} 当前内容：${detail}` : copy.description;
+      $('modalWarning').textContent = copy.warning;
+      $('modalConfirm').textContent = copy.confirm;
+      $('modalConfirm').className = `btn ${copy.danger ? 'danger' : 'primary'}`;
+      $('modalBackdrop').classList.add('open');
+      $('modalConfirm').focus();
+    }
+    function closeModal() { if (!state.busy) { $('modalBackdrop').classList.remove('open'); $('modalError').hidden = true; $('modalError').textContent = ''; state.pendingAction = null; state.pendingPayload = null; state.pendingDetail = ''; state.speedNode = ''; } }
+    $('modalCancel').addEventListener('click', closeModal);
+    $('modalBackdrop').addEventListener('click', event => { if (event.target === $('modalBackdrop')) closeModal(); });
+    addEventListener('keydown', event => { if (event.key === 'Escape') closeModal(); });
+    $('modalConfirm').addEventListener('click', async () => {
+      const action = state.pendingAction;
+      if (!action || state.busy) return;
+      state.busy = true;
+      startOperationProgress(action);
+      $('quickAutoSelect').disabled = true;
+      updateCandidateBulkUI();
+      renderReversePlan();
+      document.querySelectorAll('[data-action]').forEach(button => button.disabled = true);
+      document.querySelectorAll('[data-custom-action]').forEach(button => button.disabled = true);
+      document.querySelectorAll('[data-speed-node]').forEach(button => button.disabled = true);
+      try {
+        const catalogAction = ['catalog_refresh','candidate_verify','candidate_select','candidate_verify_batch','candidate_verify_select','candidate_auto_select'].includes(action);
+        const streamingCatalogAction = ['candidate_verify_batch','candidate_verify_select','candidate_auto_select'].includes(action);
+        const cloudflareAction = ['subscription_apply','reverse_apply'].includes(action);
+        const customPoolAction = ['custom_sync','custom_restart','custom_stop'].includes(action);
+        const poolBuildAction = ['pool_build','pool_cancel'].includes(action);
+        const poolProfileAction = action === 'pool_activate';
+        const endpoint = catalogAction ? '/api/catalog/action' : cloudflareAction ? '/api/cloudflare-config' : customPoolAction ? '/api/custom-pool' : poolBuildAction ? '/api/pool-build' : poolProfileAction ? '/api/pool-profiles' : action === 'egress_scan' ? '/api/probe' : action === 'speed_test' ? '/api/speed' : action === 'country_ports' ? '/api/country-ports' : '/api/action';
+        const body = catalogAction || cloudflareAction || poolBuildAction || poolProfileAction ? state.pendingPayload : customPoolAction ? { action: action.replace('custom_', '') } : action === 'speed_test' ? { node: state.speedNode } : action === 'country_ports' ? { countries: state.countryPortSelection } : { action };
+        await new Promise(resolve => requestAnimationFrame(() => resolve()));
+        const result = streamingCatalogAction ? await runCatalogOperation(body) : await getJSON(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-ProxyTunnel-Action': 'confirmed' }, body: JSON.stringify(body) });
+        completeOperationProgress(result);
+        if (action === 'country_ports') { state.countryPortsDirty = false; await loadCountryPorts(true); }
+        if (catalogAction) { clearCandidateChecks(); await loadCatalog(); }
+        if (catalogAction || customPoolAction) { state.customRoutePage = 1; await loadCustomPool(); }
+        if (poolBuildAction) { await loadPoolBuild(); await loadPoolProfiles(); }
+        if (poolProfileAction) { state.customRoutePage = 1; await loadCustomPool(); await loadPoolProfiles(); setCustomView('runtime'); }
+        if (cloudflareAction) {
+          await loadCloudflareConfig();
+          if (action === 'reverse_apply') {
+            const effective = state.cfConfig?.reverse_proxy || {};
+            const expectedCount = body.mode === 'auto' ? 0 : (body.candidate_ids || []).length;
+            if (String(effective.mode || 'auto').toLowerCase() !== body.mode || Number(effective.address_count || 0) !== expectedCount) throw new Error('控制端已返回，但读取到的生效反代配置与本次提交不一致');
+            setAppPage('nodes', true);
+            setTimeout(loadStatus, 3500);
+            setTimeout(loadCloudflareConfig, 4000);
+          }
+          setTimeout(loadCatalog, 1200);
+        }
+        showToast(result.message || '操作已完成', result.success === false);
+        if (streamingCatalogAction) await new Promise(resolve => setTimeout(resolve, 250));
+        $('modalBackdrop').classList.remove('open');
+        state.pendingAction = null;
+        state.pendingPayload = null;
+        state.pendingDetail = '';
+        state.speedNode = '';
+        setTimeout(loadStatus, action === 'restart' ? 6000 : (action === 'egress_scan' || action === 'speed_test') ? 500 : 1500);
+        setTimeout(loadActions, 1000);
+      } catch (error) {
+        const message = error.message || '未知错误';
+        $('modalError').hidden = false;
+        $('modalError').textContent = `操作失败：${message}`;
+        showToast(`操作失败：${message}`, true);
+        if (['candidate_verify','candidate_select','candidate_verify_batch','candidate_verify_select','candidate_auto_select'].includes(action)) loadCatalog();
+      } finally {
+        state.busy = false;
+        resetOperationProgress(action);
+        $('quickAutoSelect').disabled = false;
+        document.querySelectorAll('[data-action]').forEach(button => button.disabled = false);
+        document.querySelectorAll('[data-custom-action]').forEach(button => button.disabled = false);
+        document.querySelectorAll('[data-speed-node]').forEach(button => button.disabled = false);
+        if (state.countryPorts) renderCountryPorts();
+        if (state.poolBuild) renderPoolBuild(state.poolBuild);
+        updateCandidateBulkUI();
+        renderReversePlan();
+      }
+    });
+
+    async function loadActions() {
+      try {
+        const data = await getJSON('/api/actions?limit=20');
+        const actions = data.actions || [];
+        $('activityList').innerHTML = actions.length ? actions.map(item => `<div class="activity-item"><span>${fmtTime(item.time)}</span><strong>${escapeHTML(({egress_scan:'真实出口扫描',speed_test:'节点测速',country_ports:'国家专用端口',healthcheck:'节点检查',refresh:'刷新订阅',restart:'重启服务',catalog_refresh:'刷新候选源',candidate_verify:'候选验证',candidate_verify_batch:'批量候选验证',candidate_auto_select:'按国家自动自选',candidate_select:'候选自选',pool_build:'代理池后台构建',cloudflare_subscription:'Cloudflare 优选订阅',cloudflare_reverse_proxy:'Cloudflare 反代配置'})[item.action] || item.action)}</strong><span class="pill ${item.success ? 'good' : 'bad'}">${item.success ? '成功' : '失败'}</span><span>${escapeHTML(item.message)} · ${escapeHTML(item.remote_addr)}</span></div>`).join('') : '<div class="empty">尚无人工管理操作</div>';
+      } catch (_) {}
+    }
+    function showToast(message, bad = false) {
+      const toast = document.createElement('div');
+      toast.className = `toast ${bad ? 'bad' : ''}`;
+      toast.textContent = message;
+      $('toastWrap').appendChild(toast);
+      setTimeout(() => toast.remove(), 4500);
+    }
+
+    statusLoop();
+    loadCustomPool();
+    loadPoolBuild();
+    loadPoolProfiles();
+    loadHistory();
+    loadCountryPorts();
+    loadActions();
+    setAppPage(location.hash.slice(1));
+    setInterval(loadHistory, 60000);
+    setInterval(() => { if (!state.countryPortsDirty) loadCountryPorts(); }, 30000);
+    setInterval(() => { if ((location.hash || '#overview') === '#custom') loadCustomPool(); }, 15000);
+    setInterval(() => {
+      const active = poolBuildActiveStates.has(state.poolBuild?.job?.status || 'idle');
+      if (active || (location.hash || '#overview') === '#custom') loadPoolBuild();
+      if (active && state.poolBuild?.job?.phase === 'building') loadCustomPool();
+    }, 2000);
+    setInterval(() => { if ((location.hash || '#overview') === '#custom') loadPoolProfiles(); }, 30000);
+    setInterval(loadActions, 60000);
+  </script>
+</body>
+</html>

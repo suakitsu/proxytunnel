@@ -1,0 +1,10 @@
+* text=auto
+*.go text eol=lf
+*.html text eol=lf
+*.json text eol=lf
+*.jsonc text eol=lf
+*.md text eol=lf
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.yaml text eol=lf
+*.yml text eol=lf

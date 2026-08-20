@@ -1,0 +1,42 @@
+# Build outputs
+/bin/
+/dist/
+*.exe
+*.test
+*.out
+
+# Node / Wrangler
+/cloudflare/node_modules/
+/cloudflare/.wrangler/
+/cloudflare/worker/generated/
+/cloudflare/.dev.vars
+/cloudflare/.dev.vars.*
+!/cloudflare/.dev.vars.example
+
+# Local configuration and secrets
+/config.json
+/config.local.json
+/cloudflare/wrangler.production.jsonc
+.env
+.env.*
+!.env.example
+*.secret
+*.pem
+*.key
+secrets.json
+
+# Runtime data (created by START.cmd)
+/var/
+*.log
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Test and browser artifacts
+/.playwright-cli/
+/output/
+/coverage/
+*.cpuprofile

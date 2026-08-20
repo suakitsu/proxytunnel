@@ -1,0 +1,34 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "proxytunnel-edgetunnel",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-08-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "keep_vars": true,
+  "build": {
+    "command": "npm run build:worker",
+    "cwd": ".",
+    "watch_dir": [
+      "scripts/build-worker.mjs",
+      "worker/index.js",
+      "worker/admin-ui.js",
+      "../third_party/edgetunnel/_worker.js"
+    ]
+  },
+  "kv_namespaces": [
+    {
+      "binding": "KV"
+    }
+  ],
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.05
+    }
+  }
+}
