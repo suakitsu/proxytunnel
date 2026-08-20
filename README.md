@@ -1,8 +1,12 @@
-# ProxyTunnel
+<p align="center">
+  <img src="cmd/proxytunnel/web/logo.svg" width="88" alt="ProxyTunnel Logo">
+</p>
 
-> 自托管的 EdgeTunnel / Mihomo 节点池控制台。
+<h1 align="center">ProxyTunnel</h1>
 
-[简体中文](README.md) · [English](README_EN.md)
+<p align="center">在一台主机维护代理池，并通过局域网端口、Clash 与 V2RayN 订阅提供给多台可信设备。</p>
+
+<p align="center"><a href="README.md">简体中文</a> · <a href="README_EN.md">English</a></p>
 
 > [!WARNING]
 > ProxyTunnel 当前为 `0.1.0-alpha.1`。它已经可以构建、测试并运行本地控制台，但还没有达到可以直接暴露到公网或作为稳定发行版使用的程度。请仅在你有权管理的网络、Cloudflare 账户和节点上使用，并遵守当地法律及服务商条款。
@@ -13,7 +17,39 @@ ProxyTunnel 将 Cloudflare 上的 EdgeTunnel 数据面、Mihomo 代理运行时�
 
 项目重点不是重新实现 EdgeTunnel 协议，而是在它之上补齐日常运维能力：候选节点发现、真实出口验证、国家筛选、自选代理池、独立端口、Clash/v2rayN 订阅、后台构建任务、历史分组、健康状态和人工操作记录。
 
+一句话理解：**ProxyTunnel 管的是一组可验证、可轮换、可复用的代理节点，而不是单个代理地址。** 节点池部署在一台 Windows 主机后，本机程序、同一可信局域网内的电脑和手机、Clash、v2rayN 以及支持 HTTP/SOCKS 代理的程序可以按各自习惯使用同一批节点。
+
 当前代码来自一个已实际运行的内部版本，但已经做了独立项目化处理：生产配置、密钥、日志、节点快照、公司名称、固定局域网 IP 和无关系统入口都没有进入本仓库。
+
+## 实际界面
+
+以下截图由当前 `main` 分支的真实界面生成。运行统计来自实际部署，但域名、局域网地址、出口 IP 和 Cloudflare 项目标识均已替换为示例值；截图不包含 UUID、订阅令牌、密码或 Controller 密钥。点击图片可查看原尺寸。
+
+<table>
+  <tr>
+    <td width="50%"><a href="docs/images/dashboard.png"><img src="docs/images/dashboard.png" alt="代理池仪表盘"></a><br><strong>代理池仪表盘</strong><br>集中查看健康节点、可用率、延迟、连接和吞吐。</td>
+    <td width="50%"><a href="docs/images/create-pool.png"><img src="docs/images/create-pool.png" alt="创建代理池"></a><br><strong>创建代理池</strong><br>按来源、国家和数量构建命名分组，并同时选择端口、Clash、V2RayN 输出。</td>
+  </tr>
+  <tr>
+    <td width="50%"><a href="docs/images/runtime-nodes.png"><img src="docs/images/runtime-nodes.png" alt="运行节点明细"></a><br><strong>运行节点明细</strong><br>按代理池、国家和状态筛选节点，查看经过脱敏的真实出口验证结果。</td>
+    <td width="50%"><a href="docs/images/country-ports.png"><img src="docs/images/country-ports.png" alt="国家专用代理端口"></a><br><strong>国家与专用端口</strong><br>把连续验证通过的国家节点分配到隔离端口，主池无需中断。</td>
+  </tr>
+</table>
+
+## 多设备与多场景使用
+
+ProxyTunnel 只需要集中维护一套节点池，各设备不需要重复维护节点列表。对外提供的是标准端口或订阅，不要求每个使用者打开管理控制台。
+
+| 场景 | 接入方式 | 适合用途 |
+| --- | --- | --- |
+| 服务器本机 | `127.0.0.1:7890` 或 `127.0.0.1:7891` | 开发工具、脚本、浏览器和后台服务统一走代理池 |
+| 可信局域网内的其他电脑/手机 | `服务器地址:7891` | 多台设备共享同一自选池，由服务器负责健康检查和轮转 |
+| Clash 客户端 | 控制台生成的 Clash YAML 订阅 | 在客户端查看并手动切换池内节点 |
+| v2rayN 客户端 | 控制台生成的 Base64 订阅 | 在 Windows 客户端批量导入和切换节点 |
+| 固定国家业务 | `服务器地址:17901+` | 只在已验证的指定国家节点中轮转，不影响 7890 主池 |
+| 支持 HTTP/SOCKS 的程序 | 代理端口 | 爬虫、API 客户端、下载器或测试工具复用同一入口 |
+
+默认定位是本机和可信局域网内部工具。如果多个地点已经通过企业 VPN、Tailscale、ZeroTier 或其他私网互联，可继续使用同一套端口；不要为了跨地点访问而把 7890、7891、9190 或管理端口直接暴露到公网。
 
 ## 用户到底需要填写什么
 

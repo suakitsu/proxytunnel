@@ -1,8 +1,12 @@
-# ProxyTunnel
+<p align="center">
+  <img src="cmd/proxytunnel/web/logo.svg" width="88" alt="ProxyTunnel Logo">
+</p>
 
-> A self-hosted control plane for EdgeTunnel and Mihomo proxy pools.
+<h1 align="center">ProxyTunnel</h1>
 
-[简体中文](README.md) · [English](README_EN.md)
+<p align="center">Maintain one proxy pool and deliver it to trusted devices through LAN ports, Clash, and v2rayN subscriptions.</p>
+
+<p align="center"><a href="README.md">简体中文</a> · <a href="README_EN.md">English</a></p>
 
 > [!WARNING]
 > ProxyTunnel is currently `0.1.0-alpha.1`. It builds, tests, and serves the local control plane, but it is not ready for direct Internet exposure or stable production use. Use it only with networks, Cloudflare accounts, and nodes you are authorized to manage, and follow applicable laws and provider terms.
@@ -13,7 +17,39 @@ ProxyTunnel combines an EdgeTunnel data plane on Cloudflare, a Mihomo proxy runt
 
 It does not reimplement the EdgeTunnel protocol. Instead, it adds the operational layer that is usually missing: candidate discovery, verified egress inspection, country filtering, custom pools, isolated ports, Clash/v2rayN exports, persistent background jobs, reusable pool profiles, health telemetry, and operator action history.
 
+In one sentence: **ProxyTunnel manages a reusable pool of verified and rotatable proxy nodes, not a single proxy address.** Once the pool runs on one Windows host, local applications, trusted LAN computers and phones, Clash, v2rayN, and software that supports HTTP/SOCKS proxies can consume the same nodes in the format they prefer.
+
 The current code was extracted from a real internal deployment and converted into a standalone project. Production configuration, credentials, logs, node snapshots, company branding, fixed LAN addresses, and unrelated tools are not included.
+
+## Real interface
+
+These screenshots were generated from the current `main` branch UI. The operational structure comes from a real deployment, while domains, LAN addresses, egress IPs, and Cloudflare project identifiers have been replaced with examples. UUIDs, subscription tokens, passwords, and Controller secrets are never shown. Click an image to open it at full size.
+
+<table>
+  <tr>
+    <td width="50%"><a href="docs/images/dashboard.png"><img src="docs/images/dashboard.png" alt="Proxy pool dashboard"></a><br><strong>Pool dashboard</strong><br>Monitor healthy nodes, availability, latency, connections, and throughput.</td>
+    <td width="50%"><a href="docs/images/create-pool.png"><img src="docs/images/create-pool.png" alt="Create a proxy pool"></a><br><strong>Create a pool</strong><br>Build a named group by source, country, and size, then enable port, Clash, and v2rayN outputs together.</td>
+  </tr>
+  <tr>
+    <td width="50%"><a href="docs/images/runtime-nodes.png"><img src="docs/images/runtime-nodes.png" alt="Runtime node details"></a><br><strong>Runtime nodes</strong><br>Filter by pool, country, and health while reviewing sanitized verified-egress results.</td>
+    <td width="50%"><a href="docs/images/country-ports.png"><img src="docs/images/country-ports.png" alt="Country-specific proxy ports"></a><br><strong>Country ports</strong><br>Assign repeatedly verified countries to isolated ports without interrupting the main pool.</td>
+  </tr>
+</table>
+
+## Multiple devices and use cases
+
+ProxyTunnel keeps one central node pool. Client devices do not maintain their own duplicated node lists: they consume standard proxy ports or subscriptions and do not need access to the management console.
+
+| Scenario | Connection | Typical use |
+| --- | --- | --- |
+| Applications on the server | `127.0.0.1:7890` or `127.0.0.1:7891` | Development tools, scripts, browsers, and background services share one pool |
+| Other trusted LAN computers or phones | `server-address:7891` | Multiple devices share a custom pool while the server handles health and rotation |
+| Clash clients | Generated Clash YAML subscription | Inspect and manually switch individual nodes in the pool |
+| v2rayN clients | Generated Base64 subscription | Bulk-import and switch nodes on Windows |
+| Country-specific workloads | `server-address:17901+` | Rotate only through repeatedly verified nodes in one country without changing port 7890 |
+| Software with HTTP/SOCKS support | Proxy port | API clients, downloaders, crawlers, and test tools reuse one endpoint |
+
+The default security model is a local or trusted-LAN internal tool. If multiple locations are already connected through an enterprise VPN, Tailscale, ZeroTier, or another private overlay, they can use the same endpoints. Do not expose ports 7890, 7891, 9190, or any Controller port directly to the public Internet merely to support remote sites.
 
 ## What users actually need to enter
 
